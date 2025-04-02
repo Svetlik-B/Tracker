@@ -1,6 +1,6 @@
 import UIKit
 
-class TrackerViewController: UIViewController {
+class TrackersViewController: UIViewController {
     let dateFormatter = DateFormatter()
     override func viewDidLoad() {
         super.viewDidLoad()
