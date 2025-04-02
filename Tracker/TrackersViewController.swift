@@ -1,12 +1,22 @@
 import UIKit
 
 class TrackersViewController: UIViewController {
-    let dateFormatter = DateFormatter()
+    var categories: [TrackerCategory] = []
+    var completedTrackers: [TrackerRecord] = []
+
+    private let dateFormatter = DateFormatter()
+
     override func viewDidLoad() {
         super.viewDidLoad()
+        setupUI()
+    }
+}
+
+extension TrackersViewController {
+    fileprivate func setupUI() {
         setupDateLabel()
         updateDate()
-        
+
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationController?.navigationBar.tintColor = .black
         navigationItem.title = "Трекеры"
@@ -16,7 +26,7 @@ class TrackersViewController: UIViewController {
             target: nil,
             action: nil
         )
-        
+
         let logoImageView = UIImageView(image: UIImage(named: "1"))
         let questionLabel = UILabel()
         let searchBar = UISearchBar()
@@ -56,14 +66,14 @@ class TrackersViewController: UIViewController {
                 lessThanOrEqualTo: view.trailingAnchor, constant: -16),
         ])
     }
-    func setupDateLabel() {
+    fileprivate func setupDateLabel() {
         dateFormatter.dateStyle = .short
         dateFormatter.dateFormat = "dd.MM.yy"
         dateFormatter.locale = Locale(identifier: "ru_RU")
 
-//        dateLabel.backgroundColor = .quaternarySystemFill
+        //        dateLabel.backgroundColor = .quaternarySystemFill
     }
-    func updateDate() {
+    fileprivate func updateDate() {
         let currentDate = Date()
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             title: dateFormatter.string(from: currentDate),
