@@ -4,7 +4,7 @@ class TrackersViewController: UIViewController {
     var categories: [TrackerCategory] = []
     var completedTrackers: [TrackerRecord] = []
 
-    private let dateFormatter = DateFormatter()
+    private let datePicker = UIDatePicker()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -18,9 +18,16 @@ extension TrackersViewController {
         vc.modalPresentationStyle = .pageSheet
         present(vc, animated: true)
     }
+    fileprivate func setupDatePicker() {
+        
+        datePicker.datePickerMode = .date
+        datePicker.preferredDatePickerStyle = .compact
+        datePicker.locale = Locale(identifier: "ru_Ru")
+        
+        navigationItem.rightBarButtonItem = UIBarButtonItem(customView: datePicker)
+    }
     fileprivate func setupUI() {
-        setupDateLabel()
-        updateDate()
+        setupDatePicker()
 
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationController?.navigationBar.tintColor = .black
@@ -71,23 +78,16 @@ extension TrackersViewController {
                 lessThanOrEqualTo: view.trailingAnchor, constant: -16),
         ])
     }
-    fileprivate func setupDateLabel() {
-        dateFormatter.dateStyle = .short
-        dateFormatter.dateFormat = "dd.MM.yy"
-        dateFormatter.locale = Locale(identifier: "ru_RU")
-
+    @objc fileprivate func setDate() {
+        print(#function)
     }
-    fileprivate func updateDate() {
-        let currentDate = Date()
-        let button = UIButton(type: .system)
-        button.setTitle(dateFormatter.string(from: currentDate), for: .normal)
-        button.backgroundColor = .quaternarySystemFill
-        button.layer.cornerRadius = 8
-        button.contentEdgeInsets = UIEdgeInsets(top: 6, left: 6, bottom: 6, right: 6)
+}
 
-        let barButtonItem = UIBarButtonItem(customView: button)
-
-        navigationItem.rightBarButtonItem = barButtonItem
+extension Locale {
+    static var custom: Locale {
+        var components = Locale.Components(identifier: "en_US")
+        components.currency = "BTC"
+        return Locale(components: components)
     }
 }
 
