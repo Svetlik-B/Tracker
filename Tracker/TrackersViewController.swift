@@ -76,16 +76,18 @@ extension TrackersViewController {
         dateFormatter.dateFormat = "dd.MM.yy"
         dateFormatter.locale = Locale(identifier: "ru_RU")
 
-        // TODO:       dateLabel.backgroundColor = .quaternarySystemFill
     }
     fileprivate func updateDate() {
         let currentDate = Date()
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: dateFormatter.string(from: currentDate),
-            style: .plain,
-            target: nil,
-            action: nil
-        )
+        let button = UIButton(type: .system)
+        button.setTitle(dateFormatter.string(from: currentDate), for: .normal)
+        button.backgroundColor = .quaternarySystemFill
+        button.layer.cornerRadius = 8
+        button.contentEdgeInsets = UIEdgeInsets(top: 6, left: 6, bottom: 6, right: 6)
+
+        let barButtonItem = UIBarButtonItem(customView: button)
+
+        navigationItem.rightBarButtonItem = barButtonItem
     }
 }
 
