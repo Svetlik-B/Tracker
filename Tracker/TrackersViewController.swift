@@ -13,6 +13,11 @@ class TrackersViewController: UIViewController {
 }
 
 extension TrackersViewController {
+    @objc fileprivate func createTracker() {
+        let vc = UINavigationController(rootViewController: TrackerTypeSelectionViewController())
+        vc.modalPresentationStyle = .pageSheet
+        present(vc, animated: true)
+    }
     fileprivate func setupUI() {
         setupDateLabel()
         updateDate()
@@ -23,8 +28,8 @@ extension TrackersViewController {
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             image: UIImage(named: "plus"),
             style: .plain,
-            target: nil,
-            action: nil
+            target: self,
+            action: #selector(createTracker)
         )
 
         let logoImageView = UIImageView(image: UIImage(named: "1"))
@@ -71,7 +76,7 @@ extension TrackersViewController {
         dateFormatter.dateFormat = "dd.MM.yy"
         dateFormatter.locale = Locale(identifier: "ru_RU")
 
-        //        dateLabel.backgroundColor = .quaternarySystemFill
+        // TODO:       dateLabel.backgroundColor = .quaternarySystemFill
     }
     fileprivate func updateDate() {
         let currentDate = Date()
@@ -81,6 +86,9 @@ extension TrackersViewController {
             target: nil,
             action: nil
         )
-
     }
+}
+
+#Preview {
+    UINavigationController(rootViewController: TrackersViewController())
 }

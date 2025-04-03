@@ -37,6 +37,7 @@ extension TrackerTypeSelectionViewController {
 
     fileprivate func setupUI() {
         title = "Создание трекера"
+        view.backgroundColor = .white
 
         let stack = UIStackView(
             arrangedSubviews: [
