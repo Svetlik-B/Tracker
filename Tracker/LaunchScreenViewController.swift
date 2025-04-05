@@ -17,7 +17,7 @@ extension LaunchScreenViewController {
     fileprivate func setupUI() {
         view.backgroundColor = .systemBlue
 
-        let logoImageView = UIImageView(image: UIImage(named: "Logo"))
+        let logoImageView = UIImageView(image: .logo)
         logoImageView.contentMode = .scaleAspectFit
         logoImageView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(logoImageView)

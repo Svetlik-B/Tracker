@@ -16,8 +16,8 @@ extension TrackerTypeSelectionViewController {
         let button = UIButton(type: .system)
         button.setTitle(title, for: .normal)
         button.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .medium)
-        button.tintColor = .white
-        button.backgroundColor = .black
+        button.tintColor = .App.white
+        button.backgroundColor = .App.black
         button.layer.cornerRadius = 16
         button.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -28,7 +28,9 @@ extension TrackerTypeSelectionViewController {
     }
     
     @objc fileprivate func createHabit() {
-        print("Создать привычку")
+        let vc = UINavigationController(rootViewController: CreateHabitViewController())
+        vc.modalPresentationStyle = .pageSheet
+        present(vc, animated: true)
     }
 
     @objc fileprivate func createEvent() {
@@ -37,7 +39,7 @@ extension TrackerTypeSelectionViewController {
 
     fileprivate func setupUI() {
         title = "Создание трекера"
-        view.backgroundColor = .white
+        view.backgroundColor = .App.white
 
         let stack = UIStackView(
             arrangedSubviews: [
@@ -63,6 +65,6 @@ extension TrackerTypeSelectionViewController {
     }
 }
 
-#Preview {
-    UINavigationController(rootViewController: TrackerTypeSelectionViewController())
-}
+//#Preview {
+//    UINavigationController(rootViewController: TrackerTypeSelectionViewController())
+//}

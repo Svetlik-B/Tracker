@@ -40,3 +40,6 @@ final class TabBarController: UITabBarController {
     }
 }
 
+#Preview {
+    TabBarController()
+}

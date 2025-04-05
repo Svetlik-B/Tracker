@@ -1,6 +1,6 @@
 import UIKit
 
-class TrackersViewController: UIViewController {
+final class TrackersViewController: UIViewController {
     var categories: [TrackerCategory] = []
     var completedTrackers: [TrackerRecord] = []
 
@@ -18,28 +18,26 @@ extension TrackersViewController {
         vc.modalPresentationStyle = .pageSheet
         present(vc, animated: true)
     }
-    fileprivate func setupDatePicker() {
+    fileprivate func setupUI() {
+        navigationController?.navigationBar.prefersLargeTitles = true
+        navigationController?.navigationBar.tintColor = .App.black
+        navigationItem.title = "Трекеры"
         
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            image: .plus,
+            style: .plain,
+            target: self,
+            action: #selector(createTracker)
+        )
+        
+        datePicker.tintColor = .App.blue
         datePicker.datePickerMode = .date
         datePicker.preferredDatePickerStyle = .compact
         datePicker.locale = Locale(identifier: "ru_Ru")
         
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: datePicker)
-    }
-    fileprivate func setupUI() {
-        setupDatePicker()
 
-        navigationController?.navigationBar.prefersLargeTitles = true
-        navigationController?.navigationBar.tintColor = .black
-        navigationItem.title = "Трекеры"
-        navigationItem.leftBarButtonItem = UIBarButtonItem(
-            image: UIImage(named: "plus"),
-            style: .plain,
-            target: self,
-            action: #selector(createTracker)
-        )
-
-        let logoImageView = UIImageView(image: UIImage(named: "1"))
+        let logoImageView = UIImageView(image: .collectionPlaceholder)
         let questionLabel = UILabel()
         let searchBar = UISearchBar()
 
@@ -80,14 +78,6 @@ extension TrackersViewController {
     }
     @objc fileprivate func setDate() {
         print(#function)
-    }
-}
-
-extension Locale {
-    static var custom: Locale {
-        var components = Locale.Components(identifier: "en_US")
-        components.currency = "BTC"
-        return Locale(components: components)
     }
 }
 
