@@ -170,6 +170,9 @@ extension CreateHabitViewController: UICollectionViewDelegateFlowLayout {
     }
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         print("Select:", indexPath)
+        if indexPath == [1, 1] {
+            selectSchedule()
+        }
     }
 }
 
@@ -184,7 +187,7 @@ final class TrackerNameInputCell: UICollectionViewCell {
         setupUI()
     }
     private func setupUI() {
-        contentView.backgroundColor = .cellBackground
+        contentView.backgroundColor = .App.background
         contentView.layer.cornerRadius = 16
         
         let textField = UITextField()
@@ -228,7 +231,7 @@ final class TrackerCategoryCell: UICollectionViewCell {
         setupUI()
     }
     private func setupUI() {
-        contentView.backgroundColor = .cellBackground
+        contentView.backgroundColor = .App.background
         contentView.layer.cornerRadius = 16
         contentView.layer.maskedCorners = [
             .layerMinXMinYCorner,
@@ -292,7 +295,7 @@ final class TrackerScheduleCell: UICollectionViewCell {
             divider.heightAnchor.constraint(equalToConstant: 0.5),
         ])
 
-        contentView.backgroundColor = .cellBackground
+        contentView.backgroundColor = .App.background
         contentView.layer.cornerRadius = 16
         contentView.layer.maskedCorners = [
             .layerMinXMaxYCorner,
@@ -419,6 +422,14 @@ private enum Constant {
 }
 
 extension CreateHabitViewController {
+    fileprivate func selectSchedule() {
+        let vc = UINavigationController(
+            rootViewController: ScheduleViewController()
+        )
+        vc.modalPresentationStyle = .pageSheet
+        present(vc, animated: true)
+    }
+
     @objc fileprivate func cancel() {
         dismiss(animated: true)
     }

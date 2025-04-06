@@ -28,7 +28,9 @@ extension TrackerTypeSelectionViewController {
     }
     
     @objc fileprivate func createHabit() {
-        let vc = UINavigationController(rootViewController: CreateHabitViewController())
+        let vc = UINavigationController(
+            rootViewController: CreateHabitViewController()
+        )
         vc.modalPresentationStyle = .pageSheet
         present(vc, animated: true)
     }
@@ -65,6 +67,6 @@ extension TrackerTypeSelectionViewController {
     }
 }
 
-//#Preview {
-//    UINavigationController(rootViewController: TrackerTypeSelectionViewController())
-//}
+#Preview {
+    UINavigationController(rootViewController: TrackerTypeSelectionViewController())
+}
