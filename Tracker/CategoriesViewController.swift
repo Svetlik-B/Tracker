@@ -1,15 +1,29 @@
 import UIKit
 
-final class ScheduleViewController: UIViewController {
-    var schedule: Tracker.Schedule = [.tuesday, .saturday, .wednesday]
-    var action: (Tracker.Schedule) -> Void = { _ in }
+final class CategoriesViewController: UIViewController {
+    var categoryNames = [
+        "Важное",
+        "Радостные мелочи",
+        "Самочувствие",
+        "Привычки",
+        "Внимательность",
+        "Спорт",
+        "Важное",
+        "Радостные мелочи",
+        "Самочувствие",
+        "Привычки",
+        "Внимательность",
+        "Спорт",
+    ]
+    var action: (String) -> Void = { _ in }
+    private var selectedCategoryIndexPath: IndexPath?
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
     }
 }
 
-final class ScheduleCell: UICollectionViewCell {
+final class CategoriesCell: UICollectionViewCell {
     static let reuseIdentifier = String(describing: ScheduleCell.self)
     enum Kind {
         case top
@@ -17,9 +31,8 @@ final class ScheduleCell: UICollectionViewCell {
         case bottom
     }
     let label = UILabel()
-    let toggle = UISwitch()
+    let checkmark = UIImageView()
     let divider = UIView()
-    var action: (Bool) -> Void = { _ in }
     var kind: Kind = .middle {
         didSet {
             contentView.layer.maskedCorners =
@@ -41,14 +54,10 @@ final class ScheduleCell: UICollectionViewCell {
     }
     override func prepareForReuse() {
         divider.isHidden = false
+        checkmark.isHidden = true
         kind = .middle
-        action = { _ in }
-    }
-    @objc private func toggleValueChanged() {
-        action(toggle.isOn)
     }
     func setupUI() {
-        toggle.addTarget(self, action: #selector(toggleValueChanged), for: .valueChanged)
         divider.backgroundColor = .divider
         contentView.addSubview(divider)
         divider.translatesAutoresizingMaskIntoConstraints = false
@@ -81,59 +90,54 @@ final class ScheduleCell: UICollectionViewCell {
             ]
         )
         stack.addArrangedSubview(label)
-        stack.addArrangedSubview(toggle)
+        stack.addArrangedSubview(checkmark)
 
         contentView.backgroundColor = .App.background
         contentView.layer.cornerRadius = 16
         contentView.layer.maskedCorners = []
+        checkmark.contentMode = .bottomRight
+        checkmark.image = UIImage(systemName: "checkmark")
+        prepareForReuse()
     }
 }
 
 // MARK: - UICollectionViewDataSource
-extension ScheduleViewController: UICollectionViewDataSource {
+extension CategoriesViewController: UICollectionViewDataSource {
     func collectionView(
         _ collectionView: UICollectionView,
         numberOfItemsInSection section: Int
     ) -> Int {
-        Tracker.Weekday.allCases.count
+        categoryNames.count
     }
 
     func collectionView(
         _ collectionView: UICollectionView,
         cellForItemAt indexPath: IndexPath
-    ) -> UICollectionViewCell {
+    )
+        -> UICollectionViewCell
+    {
         let cell = collectionView.dequeueReusableCell(
-            withReuseIdentifier: ScheduleCell.reuseIdentifier,
+            withReuseIdentifier: CategoriesCell.reuseIdentifier,
             for: indexPath
         )
-
-        guard let cell = cell as? ScheduleCell
+        guard let cell = cell as? CategoriesCell
         else { return cell }
 
-        let day = Tracker.Weekday.allCases[indexPath.item]
-        cell.label.text = day.rawValue
+        cell.label.text = categoryNames[indexPath.item]
         if indexPath.item == 0 {
             cell.kind = .top
             cell.divider.isHidden = true
-        } else if indexPath.item == Tracker.Weekday.allCases.count - 1 {
+        } else if indexPath.item == categoryNames.count - 1 {
             cell.kind = .bottom
         }
+        cell.checkmark.isHidden = indexPath != selectedCategoryIndexPath
 
-        cell.toggle.isOn = schedule.contains(day)
-        cell.action = { [weak self] value in
-            if value {
-                self?.schedule.insert(day)
-            } else {
-                self?.schedule.remove(day)
-            }
-        }
-        
         return cell
     }
 }
 
 // MARK: - UICollectionViewDelegateFlowLayout
-extension ScheduleViewController: UICollectionViewDelegateFlowLayout {
+extension CategoriesViewController: UICollectionViewDelegateFlowLayout {
     func collectionView(
         _ collectionView: UICollectionView,
         layout collectionViewLayout: UICollectionViewLayout,
@@ -141,20 +145,34 @@ extension ScheduleViewController: UICollectionViewDelegateFlowLayout {
     ) -> CGSize {
         .init(
             width: collectionView.bounds.width - 2 * 16,
-            height: 75  
+            height: 75
         )
+    }
+    func collectionView(
+        _ collectionView: UICollectionView,
+        didSelectItemAt indexPath: IndexPath
+    ) {
+        if selectedCategoryIndexPath == indexPath {
+            selectedCategoryIndexPath = nil
+            collectionView.reloadData()
+        } else {
+            selectedCategoryIndexPath = indexPath
+            collectionView.reloadData()
+        }
     }
 }
 
 // MARK: - Implementation
-extension ScheduleViewController {
+extension CategoriesViewController {
     @objc fileprivate func ready() {
-        action(schedule)
-        dismiss(animated: true)
+        if let selectedCategoryIndexPath {
+            action(categoryNames[selectedCategoryIndexPath.item])
+            dismiss(animated: true)
+        }
     }
     fileprivate func setupUI() {
         view.backgroundColor = .App.white
-        title = "Расписание"
+        title = "Категория"
 
         let vStack = UIStackView()
         vStack.axis = .vertical
@@ -165,7 +183,9 @@ extension ScheduleViewController {
         NSLayoutConstraint.activate(
             [
                 vStack.topAnchor.constraint(
-                    equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
+                    equalTo: view.safeAreaLayoutGuide.topAnchor,
+                    constant: 16
+                ),
                 vStack.bottomAnchor.constraint(
                     equalTo: view.safeAreaLayoutGuide.bottomAnchor,
                     constant: -24
@@ -183,8 +203,8 @@ extension ScheduleViewController {
         collectionView.dataSource = self
         collectionView.delegate = self
         collectionView.register(
-            ScheduleCell.self,
-            forCellWithReuseIdentifier: ScheduleCell.reuseIdentifier
+            CategoriesCell.self,
+            forCellWithReuseIdentifier: CategoriesCell.reuseIdentifier
         )
         vStack.addArrangedSubview(collectionView)
 
@@ -193,7 +213,7 @@ extension ScheduleViewController {
         button.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
         button.backgroundColor = .App.black
         button.layer.cornerRadius = 16
-        button.setTitle("Готово", for: .normal)
+        button.setTitle("Добавить категорию", for: .normal)
         button.heightAnchor.constraint(equalToConstant: 60).isActive = true
         button.layer.borderWidth = 1
         button.addTarget(self, action: #selector(ready), for: .touchUpInside)
@@ -212,5 +232,5 @@ extension ScheduleViewController {
 }
 
 #Preview {
-    UINavigationController(rootViewController: ScheduleViewController())
+    UINavigationController(rootViewController: CategoriesViewController())
 }

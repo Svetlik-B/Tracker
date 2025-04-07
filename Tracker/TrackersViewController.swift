@@ -8,6 +8,7 @@ final class TrackersViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        view.backgroundColor = .App.white
         setupUI()
     }
 }
@@ -22,19 +23,19 @@ extension TrackersViewController {
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationController?.navigationBar.tintColor = .App.black
         navigationItem.title = "Трекеры"
-        
+
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             image: .plus,
             style: .plain,
             target: self,
             action: #selector(createTracker)
         )
-        
+
         datePicker.tintColor = .App.blue
         datePicker.datePickerMode = .date
         datePicker.preferredDatePickerStyle = .compact
         datePicker.locale = Locale(identifier: "ru_Ru")
-        
+
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: datePicker)
 
         let logoImageView = UIImageView(image: .collectionPlaceholder)
@@ -48,6 +49,7 @@ extension TrackersViewController {
 
         searchBar.placeholder = "Поиск"
         searchBar.searchBarStyle = .minimal
+        searchBar.tintColor = .App.blue
 
         NSLayoutConstraint.activate([
             searchBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -63,8 +65,8 @@ extension TrackersViewController {
         ])
 
         questionLabel.text = "Что будем отслеживать?"
-        questionLabel.textColor = .black
-        questionLabel.font = UIFont.systemFont(ofSize: 12, weight: .light)
+        questionLabel.textColor = .App.black
+        questionLabel.font = UIFont.systemFont(ofSize: 12, weight: .medium)
 
         NSLayoutConstraint.activate([
             questionLabel.topAnchor.constraint(equalTo: logoImageView.bottomAnchor, constant: 8),

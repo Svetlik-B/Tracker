@@ -7,6 +7,19 @@ final class CreateHabitViewController: UIViewController {
         case emoji
         case color
     }
+
+    var trackerName: String?
+    var categoryName: String?
+    var schedule: Tracker.Schedule?
+    var selectedEmojiIndexPath = IndexPath(item: 0, section: Section.emoji.rawValue)
+    var selectedColorIndexPath = IndexPath(item: 0, section: Section.color.rawValue)
+    
+    private let collectionViewLayout = UICollectionViewFlowLayout()
+    private lazy var collectionView = UICollectionView(
+        frame: .zero,
+        collectionViewLayout: collectionViewLayout
+    )
+
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -40,44 +53,61 @@ extension CreateHabitViewController: UICollectionViewDataSource {
         guard let section = Section(rawValue: indexPath.section)
         else { return UICollectionViewCell() }
 
-        let cell =
-            switch section {
-            case .nameInput:
-                collectionView.dequeueReusableCell(
-                    withReuseIdentifier: TrackerNameInputCell.reuseIdentifier,
-                    for: indexPath
-                )
-            case .details:
-                if indexPath.item == 0 {
-                    collectionView.dequeueReusableCell(
-                        withReuseIdentifier: TrackerCategoryCell.reuseIdentifier,
-                        for: indexPath
-                    )
-                } else {
-                    collectionView.dequeueReusableCell(
-                        withReuseIdentifier: TrackerScheduleCell.reuseIdentifier,
-                        for: indexPath
-                    )
-                }
+        let cell: UICollectionViewCell
 
-            case .emoji:
-                collectionView.dequeueReusableCell(
-                    withReuseIdentifier: TrackerEmojiCell.reuseIdentifier,
+        switch section {
+        case .nameInput:
+            cell = collectionView.dequeueReusableCell(
+                withReuseIdentifier: TrackerNameInputCell.reuseIdentifier,
+                for: indexPath
+            )
+        case .details:
+            if indexPath.item == 0 {
+                cell = collectionView.dequeueReusableCell(
+                    withReuseIdentifier: TrackerCategoryCell.reuseIdentifier,
                     for: indexPath
                 )
-            case .color:
-                collectionView.dequeueReusableCell(
-                    withReuseIdentifier: TrackerColorCell.reuseIdentifier,
+                if let cell = cell as? TrackerCategoryCell {
+                    if let categoryName {
+                        cell.categoryLabel.text = categoryName
+                        cell.categoryLabel.isHidden = false
+                    }
+                }
+            } else {
+                cell = collectionView.dequeueReusableCell(
+                    withReuseIdentifier: TrackerScheduleCell.reuseIdentifier,
                     for: indexPath
                 )
             }
 
-        if let colorCell = cell as? TrackerColorCell {
-            colorCell.colorView.backgroundColor = trackerColors[indexPath.item]
-        } else if let emojiCell = cell as? TrackerEmojiCell {
-            emojiCell.label.text = trackerEmoji[indexPath.item]
+        case .emoji:
+            cell = collectionView.dequeueReusableCell(
+                withReuseIdentifier: TrackerEmojiCell.reuseIdentifier,
+                for: indexPath
+            )
+            if let cell = cell as? TrackerEmojiCell {
+               cell.label.text = trackerEmoji[indexPath.item]
+               cell.contentView.backgroundColor =
+                   indexPath == selectedEmojiIndexPath
+                   ? .App.lightGray
+                   : nil
+           }
+        case .color:
+            cell = collectionView.dequeueReusableCell(
+                withReuseIdentifier: TrackerColorCell.reuseIdentifier,
+                for: indexPath
+            )
+            if let cell = cell as? TrackerColorCell {
+                cell.colorView.backgroundColor = trackerColors[indexPath.item]
+                cell.contentView.layer.borderColor = trackerColors[indexPath.item]
+                    .withAlphaComponent(0.3)
+                    .cgColor
+                cell.contentView.layer.borderWidth =
+                    indexPath == selectedColorIndexPath
+                    ? 3
+                    : 0
+            }
         }
-
         return cell
     }
     func collectionView(
@@ -168,10 +198,33 @@ extension CreateHabitViewController: UICollectionViewDelegateFlowLayout {
         case .emoji, .color: .init(width: 0, height: 18)
         }
     }
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        print("Select:", indexPath)
-        if indexPath == [1, 1] {
-            selectSchedule()
+    func collectionView(
+        _ collectionView: UICollectionView,
+        didSelectItemAt indexPath: IndexPath
+    ) {
+        guard let section = Section(rawValue: indexPath.section)
+        else { return }
+
+        switch section {
+        case .nameInput:
+            break
+        case .details:
+            if indexPath.item == 1 {
+                selectSchedule()
+            } else if indexPath.item == 0 {
+                selectCategories()
+            }
+
+        case .emoji:
+            if indexPath != selectedEmojiIndexPath {
+                selectedEmojiIndexPath = indexPath
+                collectionView.reloadData()
+            }
+        case .color:
+            if indexPath != selectedColorIndexPath {
+                selectedColorIndexPath = indexPath
+                collectionView.reloadData()
+            }
         }
     }
 }
@@ -189,7 +242,7 @@ final class TrackerNameInputCell: UICollectionViewCell {
     private func setupUI() {
         contentView.backgroundColor = .App.background
         contentView.layer.cornerRadius = 16
-        
+
         let textField = UITextField()
         textField.text = "Учиться делать iOS-приложения"
         textField.attributedPlaceholder = NSAttributedString(
@@ -201,7 +254,7 @@ final class TrackerNameInputCell: UICollectionViewCell {
         textField.font = .systemFont(ofSize: 17, weight: .regular)
         textField.textColor = .App.black
         textField.clearButtonMode = .whileEditing
-        
+
         contentView.addSubview(textField)
         textField.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate(
@@ -222,6 +275,7 @@ final class TrackerNameInputCell: UICollectionViewCell {
 
 final class TrackerCategoryCell: UICollectionViewCell {
     static let reuseIdentifier = String(describing: TrackerCategoryCell.self)
+    let categoryLabel = UILabel()
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
@@ -230,6 +284,9 @@ final class TrackerCategoryCell: UICollectionViewCell {
         super.init(coder: coder)
         setupUI()
     }
+    override func prepareForReuse() {
+        categoryLabel.isHidden = true
+    }
     private func setupUI() {
         contentView.backgroundColor = .App.background
         contentView.layer.cornerRadius = 16
@@ -237,10 +294,10 @@ final class TrackerCategoryCell: UICollectionViewCell {
             .layerMinXMinYCorner,
             .layerMaxXMinYCorner,
         ]
-        
+
         let hStack = UIStackView()
         hStack.axis = .horizontal
-        
+
         contentView.addSubview(hStack)
         hStack.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -248,28 +305,28 @@ final class TrackerCategoryCell: UICollectionViewCell {
             hStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             hStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
         ])
-        
+
         let vStack = UIStackView()
         vStack.axis = .vertical
         vStack.spacing = 2
-        
+
         hStack.addArrangedSubview(vStack)
         // добавить spacer
         hStack.addArrangedSubview(UIStackView())
-        
+
         let label = UILabel()
         label.text = "Категория"
         label.textColor = .App.black
         vStack.addArrangedSubview(label)
-        
-        let nameLabel = UILabel()
-        nameLabel.text = "Важное"
-        nameLabel.textColor = .App.gray
-        vStack.addArrangedSubview(nameLabel)
-        
+
+        categoryLabel.textColor = .App.gray
+        vStack.addArrangedSubview(categoryLabel)
+
         let chevron = UIImageView(image: .cheveron)
         chevron.contentMode = .center
         hStack.addArrangedSubview(chevron)
+        
+        prepareForReuse()
     }
 }
 
@@ -301,10 +358,10 @@ final class TrackerScheduleCell: UICollectionViewCell {
             .layerMinXMaxYCorner,
             .layerMaxXMaxYCorner,
         ]
-        
+
         let hStack = UIStackView()
         hStack.axis = .horizontal
-        
+
         contentView.addSubview(hStack)
         hStack.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -312,25 +369,25 @@ final class TrackerScheduleCell: UICollectionViewCell {
             hStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             hStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
         ])
-        
+
         let vStack = UIStackView()
         vStack.axis = .vertical
         vStack.spacing = 2
-        
+
         hStack.addArrangedSubview(vStack)
         // добавить spacer
         hStack.addArrangedSubview(UIStackView())
-        
+
         let label = UILabel()
         label.text = "Расписание"
         label.textColor = .App.black
         vStack.addArrangedSubview(label)
-        
+
         let nameLabel = UILabel()
         nameLabel.text = "Вт, Сб"
         nameLabel.textColor = .App.gray
         vStack.addArrangedSubview(nameLabel)
-        
+
         let chevron = UIImageView(image: .cheveron)
         chevron.contentMode = .center
         hStack.addArrangedSubview(chevron)
@@ -363,6 +420,7 @@ final class SectionHeaderView: UICollectionReusableView {
 final class TrackerEmojiCell: UICollectionViewCell {
     static let reuseIdentifier = String(describing: TrackerEmojiCell.self)
     let label = UILabel()
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
@@ -372,21 +430,16 @@ final class TrackerEmojiCell: UICollectionViewCell {
         setupUI()
     }
     private func setupUI() {
+        contentView.layer.cornerRadius = 16
+
         label.font = .systemFont(ofSize: 32, weight: .bold)
         contentView.addSubview(label)
         label.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            label.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            label.centerXAnchor.constraint(equalTo: contentView.centerXAnchor, constant: 2.5),
             label.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
             label.heightAnchor.constraint(equalToConstant: 40),
             label.widthAnchor.constraint(equalToConstant: 40),
-        ])
-
-        contentView.addSubview(label)
-        label.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            label.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-            label.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
         ])
     }
 }
@@ -403,6 +456,7 @@ final class TrackerColorCell: UICollectionViewCell {
         setupUI()
     }
     private func setupUI() {
+        contentView.layer.cornerRadius = 16
         colorView.layer.cornerRadius = 8
         contentView.addSubview(colorView)
         colorView.translatesAutoresizingMaskIntoConstraints = false
@@ -423,11 +477,34 @@ private enum Constant {
 
 extension CreateHabitViewController {
     fileprivate func selectSchedule() {
+        let scheduleViewController = ScheduleViewController()
+        scheduleViewController.action = { selectedSchedule in
+            if selectedSchedule.count == 7 {
+                print("Каждый день")
+            } else {
+                print(selectedSchedule.sorted().map(\.short).joined(separator: ", "))
+            }
+        }
         let vc = UINavigationController(
-            rootViewController: ScheduleViewController()
+            rootViewController: scheduleViewController
         )
         vc.modalPresentationStyle = .pageSheet
         present(vc, animated: true)
+    }
+
+    fileprivate func selectCategories() {
+        let categoriesViewController = CategoriesViewController()
+        categoriesViewController.categoryNames = ["Sveta", "Vika", "Alex", "Katya"]
+//        categoriesViewController.
+        categoriesViewController.action = { [weak self] selectedCategory in
+            self?.categoryName = selectedCategory
+            self?.collectionView.reloadData()
+        }
+        let viewC = UINavigationController(
+            rootViewController: categoriesViewController
+        )
+        viewC.modalPresentationStyle = .pageSheet
+        present(viewC, animated: true)
     }
 
     @objc fileprivate func cancel() {
@@ -441,20 +518,20 @@ extension CreateHabitViewController {
         vStack.axis = .vertical
         view.addSubview(vStack)
         vStack.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            vStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            vStack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            vStack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            vStack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-        ])
-        let collectionViewLayout = UICollectionViewFlowLayout()
+        NSLayoutConstraint.activate(
+            [
+                vStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+                vStack.bottomAnchor.constraint(
+                    equalTo: view.safeAreaLayoutGuide.bottomAnchor,
+                    constant: -24
+                ),
+                vStack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                vStack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            ]
+        )
         collectionViewLayout.scrollDirection = .vertical
         collectionViewLayout.minimumLineSpacing = 0
         collectionViewLayout.minimumInteritemSpacing = 0
-        let collectionView = UICollectionView(
-            frame: .zero,
-            collectionViewLayout: collectionViewLayout
-        )
         collectionView.register(
             TrackerNameInputCell.self,
             forCellWithReuseIdentifier: TrackerNameInputCell.reuseIdentifier
@@ -543,108 +620,23 @@ extension CreateHabitViewController {
 
 private let trackerColors: [UIColor] = [
     .Tracker.color1,
-    UIColor(
-        red: 255 / 255,
-        green: 136 / 255,
-        blue: 30 / 255,
-        alpha: 1
-    ),
-    UIColor(
-        red: 0 / 255,
-        green: 123 / 255,
-        blue: 250 / 255,
-        alpha: 1
-    ),
-    UIColor(
-        red: 110 / 255,
-        green: 68 / 255,
-        blue: 254 / 255,
-        alpha: 1
-    ),
-    UIColor(
-        red: 51 / 255,
-        green: 207 / 255,
-        blue: 105 / 255,
-        alpha: 1
-    ),
-    UIColor(
-        red: 230 / 255,
-        green: 109 / 255,
-        blue: 212 / 255,
-        alpha: 1
-    ),
-    UIColor(
-        red: 249 / 255,
-        green: 212 / 255,
-        blue: 212 / 255,
-        alpha: 1
-    ),
-    UIColor(
-        red: 52 / 255,
-        green: 167 / 255,
-        blue: 254 / 255,
-        alpha: 1
-    ),
-    UIColor(
-        red: 70 / 255,
-        green: 230 / 255,
-        blue: 157 / 255,
-        alpha: 1
-    ),
-    UIColor(
-        red: 53 / 255,
-        green: 52 / 255,
-        blue: 124 / 255,
-        alpha: 1
-    ),
-    UIColor(
-        red: 255 / 255,
-        green: 103 / 255,
-        blue: 77 / 255,
-        alpha: 1
-    ),
-    UIColor(
-        red: 255 / 255,
-        green: 153 / 255,
-        blue: 204 / 255,
-        alpha: 1
-    ),
-    UIColor(
-        red: 246 / 255,
-        green: 196 / 255,
-        blue: 139 / 255,
-        alpha: 1
-    ),
-    UIColor(
-        red: 121 / 255,
-        green: 148 / 255,
-        blue: 245 / 255,
-        alpha: 1
-    ),
-    UIColor(
-        red: 131 / 255,
-        green: 44 / 255,
-        blue: 241 / 255,
-        alpha: 1
-    ),
-    UIColor(
-        red: 173 / 255,
-        green: 86 / 255,
-        blue: 218 / 255,
-        alpha: 1
-    ),
-    UIColor(
-        red: 141 / 255,
-        green: 114 / 255,
-        blue: 230 / 255,
-        alpha: 1
-    ),
-    UIColor(
-        red: 47 / 255,
-        green: 208 / 255,
-        blue: 88 / 255,
-        alpha: 1
-    ),
+    .Tracker.color2,
+    .Tracker.color3,
+    .Tracker.color4,
+    .Tracker.color5,
+    .Tracker.color6,
+    .Tracker.color7,
+    .Tracker.color8,
+    .Tracker.color9,
+    .Tracker.color10,
+    .Tracker.color11,
+    .Tracker.color12,
+    .Tracker.color13,
+    .Tracker.color14,
+    .Tracker.color15,
+    .Tracker.color16,
+    .Tracker.color17,
+    .Tracker.color18,
 ]
 
 private let trackerEmoji = [

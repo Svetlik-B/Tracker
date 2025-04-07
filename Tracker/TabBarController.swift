@@ -9,9 +9,8 @@ final class TabBarController: UITabBarController {
     }
 
     private func setupTabBar() {
-        tabBar.backgroundColor = .white
+        tabBar.backgroundColor = .App.white
         tabBar.layer.borderWidth = 1
-        tabBar.layer.borderColor = UIColor.lightGray.cgColor
     }
 
     private func setupViewControllers() {
