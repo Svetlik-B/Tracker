@@ -1,3 +1,6 @@
+import Foundation
+import UIKit
+
 struct Tracker {
     enum Weekday: String, CaseIterable, Comparable {
         static func < (lhs: Tracker.Weekday, rhs: Tracker.Weekday) -> Bool {
@@ -34,13 +37,10 @@ struct Tracker {
             }
         }
     }
-    typealias ID = String
+    typealias ID = UUID
     typealias Emoji = String
-    enum Color: Int {
-        case color1 = 1
-        case color2
-    }
     typealias Schedule = Set<Weekday>
+    typealias Color = UIColor
     var id: ID
     var name: String
     var color: Color

@@ -15,7 +15,8 @@ final class TrackersViewController: UIViewController {
 
 extension TrackersViewController {
     @objc fileprivate func createTracker() {
-        let vc = UINavigationController(rootViewController: TrackerTypeSelectionViewController())
+        let extractedExpr: UIViewController = TrackerTypeSelectionViewController()
+        let vc = UINavigationController(rootViewController: extractedExpr)
         vc.modalPresentationStyle = .pageSheet
         present(vc, animated: true)
     }

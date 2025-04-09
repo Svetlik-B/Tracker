@@ -8,12 +8,14 @@ final class CreateHabitViewController: UIViewController {
         case color
     }
 
-    var trackerName: String?
-    var categoryName: String?
-    var schedule: Tracker.Schedule?
+    var action: (Tracker) -> Void = { _ in }
+    var trackerName = "" { didSet { updateButtonState() }}
+    var categoryName: String?  { didSet { updateButtonState() }}
+    var schedule = Tracker.Schedule()  { didSet { updateButtonState() }}
     var selectedEmojiIndexPath = IndexPath(item: 0, section: Section.emoji.rawValue)
     var selectedColorIndexPath = IndexPath(item: 0, section: Section.color.rawValue)
-    
+
+    private let createButton = UIButton(type: .system)
     private let collectionViewLayout = UICollectionViewFlowLayout()
     private lazy var collectionView = UICollectionView(
         frame: .zero,
@@ -23,6 +25,28 @@ final class CreateHabitViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+    }
+}
+
+// MARK: - UITextFieldDelegate
+extension CreateHabitViewController: UITextFieldDelegate {
+    func textField(
+        _ textField: UITextField, shouldChangeCharactersIn range: NSRange,
+        replacementString string: String
+    ) -> Bool {
+        let currentText = textField.text ?? ""
+        guard let stringRange = Range(range, in: currentText) else { return false }
+        let updatedText = currentText.replacingCharacters(in: stringRange, with: string)
+        if updatedText.count <= 38 {
+            trackerName = updatedText
+            return true
+        } else {
+            return false
+        }
+    }
+    func textFieldShouldClear(_ textField: UITextField) -> Bool {
+        trackerName = ""
+        return true
     }
 }
 
@@ -61,6 +85,9 @@ extension CreateHabitViewController: UICollectionViewDataSource {
                 withReuseIdentifier: TrackerNameInputCell.reuseIdentifier,
                 for: indexPath
             )
+            if let cell = cell as? TrackerNameInputCell {
+                cell.textField.delegate = self
+            }
         case .details:
             if indexPath.item == 0 {
                 cell = collectionView.dequeueReusableCell(
@@ -68,16 +95,20 @@ extension CreateHabitViewController: UICollectionViewDataSource {
                     for: indexPath
                 )
                 if let cell = cell as? TrackerCategoryCell {
-                    if let categoryName {
-                        cell.categoryLabel.text = categoryName
-                        cell.categoryLabel.isHidden = false
-                    }
+                    cell.categoryLabel.text = categoryName
                 }
             } else {
                 cell = collectionView.dequeueReusableCell(
                     withReuseIdentifier: TrackerScheduleCell.reuseIdentifier,
                     for: indexPath
                 )
+                if let cell = cell as? TrackerScheduleCell {
+                    let text =
+                        schedule.count == 7
+                        ? "Каждый день"
+                        : schedule.sorted().map(\.short).joined(separator: ", ")
+                    cell.scheduleLabel.text = text
+                }
             }
 
         case .emoji:
@@ -86,12 +117,12 @@ extension CreateHabitViewController: UICollectionViewDataSource {
                 for: indexPath
             )
             if let cell = cell as? TrackerEmojiCell {
-               cell.label.text = trackerEmoji[indexPath.item]
-               cell.contentView.backgroundColor =
-                   indexPath == selectedEmojiIndexPath
-                   ? .App.lightGray
-                   : nil
-           }
+                cell.label.text = trackerEmoji[indexPath.item]
+                cell.contentView.backgroundColor =
+                    indexPath == selectedEmojiIndexPath
+                    ? .App.lightGray
+                    : nil
+            }
         case .color:
             cell = collectionView.dequeueReusableCell(
                 withReuseIdentifier: TrackerColorCell.reuseIdentifier,
@@ -99,7 +130,8 @@ extension CreateHabitViewController: UICollectionViewDataSource {
             )
             if let cell = cell as? TrackerColorCell {
                 cell.colorView.backgroundColor = trackerColors[indexPath.item]
-                cell.contentView.layer.borderColor = trackerColors[indexPath.item]
+                cell.contentView.layer.borderColor =
+                    trackerColors[indexPath.item]
                     .withAlphaComponent(0.3)
                     .cgColor
                 cell.contentView.layer.borderWidth =
@@ -231,6 +263,8 @@ extension CreateHabitViewController: UICollectionViewDelegateFlowLayout {
 
 final class TrackerNameInputCell: UICollectionViewCell {
     static let reuseIdentifier = String(describing: TrackerNameInputCell.self)
+    let textField = UITextField()
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
@@ -243,8 +277,6 @@ final class TrackerNameInputCell: UICollectionViewCell {
         contentView.backgroundColor = .App.background
         contentView.layer.cornerRadius = 16
 
-        let textField = UITextField()
-        textField.text = "Учиться делать iOS-приложения"
         textField.attributedPlaceholder = NSAttributedString(
             string: "Введите название трекера",
             attributes: [
@@ -284,9 +316,6 @@ final class TrackerCategoryCell: UICollectionViewCell {
         super.init(coder: coder)
         setupUI()
     }
-    override func prepareForReuse() {
-        categoryLabel.isHidden = true
-    }
     private func setupUI() {
         contentView.backgroundColor = .App.background
         contentView.layer.cornerRadius = 16
@@ -325,13 +354,12 @@ final class TrackerCategoryCell: UICollectionViewCell {
         let chevron = UIImageView(image: .cheveron)
         chevron.contentMode = .center
         hStack.addArrangedSubview(chevron)
-        
-        prepareForReuse()
     }
 }
 
 final class TrackerScheduleCell: UICollectionViewCell {
     static let reuseIdentifier = String(describing: TrackerScheduleCell.self)
+    let scheduleLabel = UILabel()
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
@@ -383,10 +411,8 @@ final class TrackerScheduleCell: UICollectionViewCell {
         label.textColor = .App.black
         vStack.addArrangedSubview(label)
 
-        let nameLabel = UILabel()
-        nameLabel.text = "Вт, Сб"
-        nameLabel.textColor = .App.gray
-        vStack.addArrangedSubview(nameLabel)
+        scheduleLabel.textColor = .App.gray
+        vStack.addArrangedSubview(scheduleLabel)
 
         let chevron = UIImageView(image: .cheveron)
         chevron.contentMode = .center
@@ -476,14 +502,24 @@ private enum Constant {
 }
 
 extension CreateHabitViewController {
+    fileprivate var isReady: Bool {
+        trackerName != ""
+            && !schedule.isEmpty
+            && categoryName != nil
+            && categoryName != ""
+    }
+
+    fileprivate func updateButtonState() {
+        createButton.isEnabled = isReady
+        createButton.backgroundColor = isReady ? .App.black : .App.gray
+        createButton.setTitleColor(isReady ? .App.white : .App.black, for: .normal)
+    }
     fileprivate func selectSchedule() {
         let scheduleViewController = ScheduleViewController()
-        scheduleViewController.action = { selectedSchedule in
-            if selectedSchedule.count == 7 {
-                print("Каждый день")
-            } else {
-                print(selectedSchedule.sorted().map(\.short).joined(separator: ", "))
-            }
+        scheduleViewController.schedule = schedule
+        scheduleViewController.action = { [weak self] schedule in
+            self?.schedule = schedule
+            self?.collectionView.reloadData()
         }
         let vc = UINavigationController(
             rootViewController: scheduleViewController
@@ -495,9 +531,9 @@ extension CreateHabitViewController {
     fileprivate func selectCategories() {
         let categoriesViewController = CategoriesViewController()
         categoriesViewController.categoryNames = ["Sveta", "Vika", "Alex", "Katya"]
-//        categoriesViewController.
-        categoriesViewController.action = { [weak self] selectedCategory in
-            self?.categoryName = selectedCategory
+        //        categoriesViewController.
+        categoriesViewController.action = { [weak self] category in
+            self?.categoryName = category
             self?.collectionView.reloadData()
         }
         let viewC = UINavigationController(
@@ -598,9 +634,7 @@ extension CreateHabitViewController {
         let createButtonContainer = UIView()
         hStack.addArrangedSubview(createButtonContainer)
 
-        let createButton = UIButton(type: .system)
         createButton.setTitle("Создать", for: .normal)
-        createButton.backgroundColor = .lightGray
         createButton.layer.cornerRadius = 16
         createButton.setTitleColor(.white, for: .normal)
         createButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
@@ -615,6 +649,24 @@ extension CreateHabitViewController {
             createButton.topAnchor.constraint(equalTo: createButtonContainer.topAnchor),
             createButton.bottomAnchor.constraint(equalTo: createButtonContainer.bottomAnchor),
         ])
+        createButton.addTarget(
+            self,
+            action: #selector(createButtonTapped),
+            for: .touchUpInside
+        )
+        updateButtonState()
+    }
+    @objc fileprivate func createButtonTapped() {
+        guard isReady else { return }
+        dismiss(animated: true)
+        let tracker = Tracker(
+            id: UUID(),
+            name: trackerName,
+            color: trackerColors[selectedColorIndexPath.item],
+            emoji: trackerEmoji[selectedEmojiIndexPath.item],
+            schedule: schedule
+        )
+        action(tracker)
     }
 }
 
