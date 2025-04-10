@@ -514,6 +514,7 @@ extension CreateHabitViewController {
         createButton.backgroundColor = isReady ? .App.black : .App.gray
         createButton.setTitleColor(isReady ? .App.white : .App.black, for: .normal)
     }
+    
     fileprivate func selectSchedule() {
         let scheduleViewController = ScheduleViewController()
         scheduleViewController.schedule = schedule

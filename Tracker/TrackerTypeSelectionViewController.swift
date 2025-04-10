@@ -1,6 +1,7 @@
 import UIKit
 
 final class TrackerTypeSelectionViewController: UIViewController {
+    var action: ((Tracker) -> Void)?
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -28,8 +29,13 @@ extension TrackerTypeSelectionViewController {
     }
     
     @objc fileprivate func createHabit() {
+        let createHabitViewController = CreateHabitViewController()
+        createHabitViewController.action = { [weak self] tracker in
+            self?.dismiss(animated: true)
+            self?.action?(tracker)
+        }
         let vc = UINavigationController(
-            rootViewController: CreateHabitViewController()
+            rootViewController: createHabitViewController
         )
         vc.modalPresentationStyle = .pageSheet
         present(vc, animated: true)

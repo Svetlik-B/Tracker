@@ -1,4 +1,4 @@
 struct TrackerCategory {
-    var name: String
-    var trackers: [Tracker]
+    let name: String
+    let trackers: [Tracker]
 }
