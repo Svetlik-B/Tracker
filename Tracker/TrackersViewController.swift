@@ -6,71 +6,10 @@ private enum Constant {
 }
 
 final class TrackersViewController: UIViewController {
-    var categories: [TrackerCategory] = [
-        .init(
-            name: "First",
-            trackers: [
-                .init(
-                    id: UUID(),
-                    name: "tracker",
-                    color: .red,
-                    emoji: "😪",
-                    schedule: [.friday, .saturday]
-                ),
-                .init(
-                    id: UUID(),
-                    name: "tracker",
-                    color: .orange,
-                    emoji: "😪",
-                    schedule: [.friday, .saturday]
-                ),
-                .init(
-                    id: UUID(),
-                    name: "tracker",
-                    color: .cyan,
-                    emoji: "😪",
-                    schedule: [.friday, .saturday]
-                ),
-            ]
-        ),
-        .init(
-            name: "Second",
-            trackers: [
-                .init(
-                    id: UUID(),
-                    name: "tracker",
-                    color: .yellow,
-                    emoji: "😪",
-                    schedule: [.friday, .saturday]
-                ),
-                .init(
-                    id: UUID(),
-                    name: "tracker",
-                    color: .green,
-                    emoji: "😪",
-                    schedule: [.friday, .saturday]
-                ),
-                .init(
-                    id: UUID(),
-                    name: "tracker",
-                    color: .blue,
-                    emoji: "😪",
-                    schedule: [.friday, .saturday]
-                ),
-                .init(
-                    id: UUID(),
-                    name: "tracker",
-                    color: .purple,
-                    emoji: "😪",
-                    schedule: [.friday, .saturday]
-                ),
-            ]
-        ),
-    ]
     var completedTrackers: [TrackerRecord] = []
     var haveTrackers: Bool {
         var count: Int = 0
-        for category in categories {
+        for category in Model.shared.categories {
             count += category.trackers.count
         }
         return count > 0
@@ -78,6 +17,14 @@ final class TrackersViewController: UIViewController {
 
     private let datePicker = UIDatePicker()
     private let searchBar = UISearchBar()
+    private let imageContainerView = UIView()
+    private let filterButton = UIButton(type: .system)
+    private let layout = UICollectionViewFlowLayout()
+    private lazy var collectionView = UICollectionView(
+        frame: .zero,
+        collectionViewLayout: layout
+    )
+
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -113,18 +60,36 @@ final class TrackerHeader: UICollectionReusableView {
 }
 
 final class TrackerCell: UICollectionViewCell {
+    struct ViewModel {
+        var emoji: String?
+        var text: String?
+        var color: UIColor?
+        var count: Int?
+        var completed: Bool?
+    }
+    
+    func configure(model: ViewModel) {
+        colorView.backgroundColor = model.color
+        button.tintColor = model.color
+        cellLabel.text = model.text
+        emojiLabel.text = model.emoji
+        let count = model.count ?? 0
+        dayLabel.text = switch count {
+        case let c where c % 100 >= 10 && c % 100 <= 20: "\(c) дней"
+        case let c where c % 10 == 1 : "\(c) день"
+        case let c where c % 10 == 2 : "\(c) дня"
+        case let c where c % 10 == 3 : "\(c) дня"
+        case let c where c % 10 == 4 : "\(c) дня"
+        default: "\(count) дней"
+        }
+    }
+
     static let reuseIdentifier = String(describing: TrackerCell.self)
-    let colorView = UIView()
-    let dayLabel = UILabel()
-    let button = UIButton(type: .custom)
-    // Кнопка галочка вместо плюс
-    let doneImage = UIImageView(
-        image: .done
-            .withRenderingMode(.alwaysTemplate)
-    )
-    let labelCell = UILabel()
-    let backgroundEmoji = UIView()
-    let labelEmoji = UILabel()
+    private let colorView = UIView()
+    private let dayLabel = UILabel()
+    private let button = UIButton(type: .custom)
+    private let cellLabel = UILabel()
+    private let emojiLabel = UILabel()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -135,7 +100,7 @@ final class TrackerCell: UICollectionViewCell {
         super.init(coder: coder)
         setUp()
     }
-
+    
     func setUp() {
         colorView.layer.cornerRadius = 16
         colorView.layer.borderWidth = 1
@@ -143,8 +108,8 @@ final class TrackerCell: UICollectionViewCell {
             UIColor.App.gray
             .withAlphaComponent(0.3)
             .cgColor
-        labelCell.textAlignment = .left
-        labelCell.numberOfLines = 3
+        cellLabel.textAlignment = .left
+        cellLabel.numberOfLines = 3
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineSpacing = 6
         let attributedString = NSAttributedString(
@@ -155,51 +120,51 @@ final class TrackerCell: UICollectionViewCell {
                 .foregroundColor: UIColor.white,
             ]
         )
-        labelCell.attributedText = attributedString
-        colorView.addSubview(labelCell)
+        cellLabel.attributedText = attributedString
+        colorView.addSubview(cellLabel)
 
-        labelCell.translatesAutoresizingMaskIntoConstraints = false
+        cellLabel.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate(
             [
-                labelCell.centerXAnchor
+                cellLabel.centerXAnchor
                     .constraint(equalTo: colorView.centerXAnchor),
-                labelCell.leadingAnchor
+                cellLabel.leadingAnchor
                     .constraint(
                         equalTo: colorView.leadingAnchor, constant: 12),
-                labelCell.trailingAnchor
+                cellLabel.trailingAnchor
                     .constraint(
                         equalTo: colorView.trailingAnchor, constant: -12),
-                labelCell.topAnchor
+                cellLabel.topAnchor
                     .constraint(greaterThanOrEqualTo: colorView.topAnchor, constant: 12),
-                labelCell.bottomAnchor
+                cellLabel.bottomAnchor
                     .constraint(
                         lessThanOrEqualTo: colorView.bottomAnchor, constant: -12),
             ]
         )
 
-        labelEmoji.text = "🐶"
-        labelEmoji.font = UIFont.systemFont(ofSize: 13)
-        labelEmoji.textAlignment = .center
+        emojiLabel.text = "🐶"
+        emojiLabel.font = UIFont.systemFont(ofSize: 13)
+        emojiLabel.textAlignment = .center
 
-        backgroundEmoji.backgroundColor = .white.withAlphaComponent(0.3)
-        backgroundEmoji.layer.cornerRadius = 12
-        //        backgroundEmoji.layer.masksToBounds = true
+        let emojiBackground = UIView()
+        emojiBackground.backgroundColor = .white.withAlphaComponent(0.3)
+        emojiBackground.layer.cornerRadius = 12
 
-        backgroundEmoji.addSubview(labelEmoji)
-        colorView.addSubview(backgroundEmoji)
+        emojiBackground.addSubview(emojiLabel)
+        colorView.addSubview(emojiBackground)
 
-        backgroundEmoji.translatesAutoresizingMaskIntoConstraints = false
-        labelEmoji.translatesAutoresizingMaskIntoConstraints = false
+        emojiBackground.translatesAutoresizingMaskIntoConstraints = false
+        emojiLabel.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
-            backgroundEmoji.widthAnchor.constraint(equalToConstant: 24),
-            backgroundEmoji.heightAnchor.constraint(equalToConstant: 24),
-            backgroundEmoji.topAnchor.constraint(equalTo: colorView.topAnchor, constant: 12),
-            backgroundEmoji.leadingAnchor.constraint(
+            emojiBackground.widthAnchor.constraint(equalToConstant: 24),
+            emojiBackground.heightAnchor.constraint(equalToConstant: 24),
+            emojiBackground.topAnchor.constraint(equalTo: colorView.topAnchor, constant: 12),
+            emojiBackground.leadingAnchor.constraint(
                 equalTo: colorView.leadingAnchor, constant: 12),
 
-            labelEmoji.centerXAnchor.constraint(equalTo: backgroundEmoji.centerXAnchor),
-            labelEmoji.centerYAnchor.constraint(equalTo: backgroundEmoji.centerYAnchor),
+            emojiLabel.centerXAnchor.constraint(equalTo: emojiBackground.centerXAnchor),
+            emojiLabel.centerYAnchor.constraint(equalTo: emojiBackground.centerYAnchor),
         ])
 
         dayLabel.font = .systemFont(ofSize: 12, weight: .medium)
@@ -258,6 +223,7 @@ final class TrackerCell: UICollectionViewCell {
     }
 }
 
+// MARK: - UICollectionViewDelegateFlowLayout
 extension TrackersViewController: UICollectionViewDelegateFlowLayout {
     func collectionView(
         _ collectionView: UICollectionView,
@@ -275,19 +241,23 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
         layout collectionViewLayout: UICollectionViewLayout,
         referenceSizeForHeaderInSection section: Int
     ) -> CGSize {
-        .init(width: 0, height: section == 0 ? 54 : 46)
+        guard Model.shared.categories[section].trackers.count > 0 else {
+            return .zero
+        }
+        return .init(width: 0, height: section == 0 ? 54 : 46)
     }
 }
 
+// MARK: - UICollectionViewDataSource
 extension TrackersViewController: UICollectionViewDataSource {
     func numberOfSections(in collectionView: UICollectionView) -> Int {
-        categories.count
+        Model.shared.categories.count
     }
     func collectionView(
         _ collectionView: UICollectionView,
         numberOfItemsInSection section: Int
     ) -> Int {
-        categories[section].trackers.count
+        Model.shared.categories[section].trackers.count
     }
 
     func collectionView(
@@ -299,11 +269,16 @@ extension TrackersViewController: UICollectionViewDataSource {
             for: indexPath
         )
         if let cell = cell as? TrackerCell {
-            let color = categories[indexPath.section]
-                .trackers[indexPath.item].color
-            cell.colorView.backgroundColor = color
-            cell.button.tintColor = color
-            cell.dayLabel.text = "4 дня"
+            let tracker = Model.shared
+                .categories[indexPath.section]
+                .trackers[indexPath.item]
+            cell.configure(model: .init(
+                emoji: tracker.emoji,
+                text: tracker.name,
+                color: tracker.color,
+                count: 1122,
+                completed: false
+            ))
         }
         return cell
     }
@@ -318,7 +293,7 @@ extension TrackersViewController: UICollectionViewDataSource {
             for: indexPath
         )
         if let header = header as? TrackerHeader {
-            header.label.text = categories[indexPath.section].name
+            header.label.text = Model.shared.categories[indexPath.section].name
         }
         return header
     }
@@ -343,7 +318,6 @@ extension TrackersViewController {
         searchBar.tintColor = .App.blue
         mainStack.addArrangedSubview(searchBar)
 
-        let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .vertical
         layout.minimumLineSpacing = 0
         layout.minimumInteritemSpacing = Constant.minimumInteritemSpacing
@@ -354,7 +328,6 @@ extension TrackersViewController {
             right: Constant.sectionInset
         )
 
-        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.isHidden = !haveTrackers
         collectionView.backgroundColor = .App.white
         collectionView.dataSource = self
@@ -378,7 +351,6 @@ extension TrackersViewController {
         questionLabel.textColor = .App.black
         questionLabel.font = UIFont.systemFont(ofSize: 12, weight: .medium)
 
-        let imageContainerView = UIView()
         imageContainerView.isHidden = haveTrackers
         mainStack.addArrangedSubview(imageContainerView)
 
@@ -394,24 +366,23 @@ extension TrackersViewController {
             imageStack.centerYAnchor.constraint(equalTo: imageContainerView.centerYAnchor),
         ])
 
-        let button = UIButton(type: .system)
-        button.setTitle("Фильтры", for: .normal)
-        button.backgroundColor = .App.blue
-        button.tintColor = .white
-        button.layer.cornerRadius = 16
-        button.isHidden = !haveTrackers
+        filterButton.setTitle("Фильтры", for: .normal)
+        filterButton.backgroundColor = .App.blue
+        filterButton.tintColor = .white
+        filterButton.layer.cornerRadius = 16
+        filterButton.isHidden = !haveTrackers
 
-        button.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(button)
+        filterButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(filterButton)
         NSLayoutConstraint.activate(
             [
-                button.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-                button.widthAnchor.constraint(equalToConstant: 114),
-                button.bottomAnchor.constraint(
+                filterButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                filterButton.widthAnchor.constraint(equalToConstant: 114),
+                filterButton.bottomAnchor.constraint(
                     equalTo: view.safeAreaLayoutGuide.bottomAnchor,
                     constant: -16
                 ),
-                button.heightAnchor.constraint(equalToConstant: 50),
+                filterButton.heightAnchor.constraint(equalToConstant: 50),
             ]
         )
     }
@@ -420,7 +391,13 @@ extension TrackersViewController {
     @objc fileprivate func createTracker() {
         let trackerTypeSelectionViewController = TrackerTypeSelectionViewController()
         trackerTypeSelectionViewController.action = { [weak self] tracker in
-            print(tracker)
+            guard let self else { return }
+            Model.shared.add(tracker: tracker)
+            self.collectionView.reloadData()
+            
+            self.collectionView.isHidden = !self.haveTrackers
+            self.filterButton.isHidden = !self.haveTrackers
+            self.imageContainerView.isHidden = self.haveTrackers
         }
         let vc = UINavigationController(rootViewController: trackerTypeSelectionViewController)
         vc.modalPresentationStyle = .pageSheet

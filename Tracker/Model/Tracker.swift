@@ -37,11 +37,11 @@ struct Tracker {
             }
         }
     }
-    typealias ID = UUID
     typealias Emoji = String
     typealias Schedule = Set<Weekday>
     typealias Color = UIColor
-    var id: ID
+    var id: UUID
+    var categoryID: UUID
     var name: String
     var color: Color
     var emoji: Emoji

@@ -9,9 +9,10 @@ final class CreateHabitViewController: UIViewController {
     }
 
     var action: (Tracker) -> Void = { _ in }
-    var trackerName = "" { didSet { updateButtonState() }}
-    var categoryName: String?  { didSet { updateButtonState() }}
-    var schedule = Tracker.Schedule()  { didSet { updateButtonState() }}
+    var trackerName = "" { didSet { updateButtonState() } }
+    var category: TrackerCategory? { didSet { updateButtonState() } }
+    //    var categoryName: String?  { didSet { updateButtonState() }}
+    var schedule = Tracker.Schedule() { didSet { updateButtonState() } }
     var selectedEmojiIndexPath = IndexPath(item: 0, section: Section.emoji.rawValue)
     var selectedColorIndexPath = IndexPath(item: 0, section: Section.color.rawValue)
 
@@ -94,8 +95,8 @@ extension CreateHabitViewController: UICollectionViewDataSource {
                     withReuseIdentifier: TrackerCategoryCell.reuseIdentifier,
                     for: indexPath
                 )
-                if let cell = cell as? TrackerCategoryCell {
-                    cell.categoryLabel.text = categoryName
+                if let cell = cell as? TrackerCategoryCell, let category {
+                    cell.categoryLabel.text = category.name
                 }
             } else {
                 cell = collectionView.dequeueReusableCell(
@@ -505,8 +506,7 @@ extension CreateHabitViewController {
     fileprivate var isReady: Bool {
         trackerName != ""
             && !schedule.isEmpty
-            && categoryName != nil
-            && categoryName != ""
+            && category != nil
     }
 
     fileprivate func updateButtonState() {
@@ -514,7 +514,7 @@ extension CreateHabitViewController {
         createButton.backgroundColor = isReady ? .App.black : .App.gray
         createButton.setTitleColor(isReady ? .App.white : .App.black, for: .normal)
     }
-    
+
     fileprivate func selectSchedule() {
         let scheduleViewController = ScheduleViewController()
         scheduleViewController.schedule = schedule
@@ -531,10 +531,8 @@ extension CreateHabitViewController {
 
     fileprivate func selectCategories() {
         let categoriesViewController = CategoriesViewController()
-        categoriesViewController.categoryNames = ["Sveta", "Vika", "Alex", "Katya"]
-        //        categoriesViewController.
         categoriesViewController.action = { [weak self] category in
-            self?.categoryName = category
+            self?.category = category
             self?.collectionView.reloadData()
         }
         let viewC = UINavigationController(
@@ -662,6 +660,7 @@ extension CreateHabitViewController {
         dismiss(animated: true)
         let tracker = Tracker(
             id: UUID(),
+            categoryID: category?.id ?? UUID(),
             name: trackerName,
             color: trackerColors[selectedColorIndexPath.item],
             emoji: trackerEmoji[selectedEmojiIndexPath.item],

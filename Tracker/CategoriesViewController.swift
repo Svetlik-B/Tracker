@@ -1,21 +1,7 @@
 import UIKit
 
 final class CategoriesViewController: UIViewController {
-    var categoryNames = [
-        "Важное",
-        "Радостные мелочи",
-        "Самочувствие",
-        "Привычки",
-        "Внимательность",
-        "Спорт",
-        "Важное",
-        "Радостные мелочи",
-        "Самочувствие",
-        "Привычки",
-        "Внимательность",
-        "Спорт",
-    ]
-    var action: (String) -> Void = { _ in }
+    var action: (TrackerCategory) -> Void = { _ in }
     private var selectedCategoryIndexPath: IndexPath?
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -107,7 +93,7 @@ extension CategoriesViewController: UICollectionViewDataSource {
         _ collectionView: UICollectionView,
         numberOfItemsInSection section: Int
     ) -> Int {
-        categoryNames.count
+        Model.shared.categories.count
     }
 
     func collectionView(
@@ -123,11 +109,11 @@ extension CategoriesViewController: UICollectionViewDataSource {
         guard let cell = cell as? CategoriesCell
         else { return cell }
 
-        cell.label.text = categoryNames[indexPath.item]
+        cell.label.text = Model.shared.categories[indexPath.item].name
         if indexPath.item == 0 {
             cell.kind = .top
             cell.divider.isHidden = true
-        } else if indexPath.item == categoryNames.count - 1 {
+        } else if indexPath.item == Model.shared.categories.count - 1 {
             cell.kind = .bottom
         }
         cell.checkmark.isHidden = indexPath != selectedCategoryIndexPath
@@ -166,7 +152,7 @@ extension CategoriesViewController: UICollectionViewDelegateFlowLayout {
 extension CategoriesViewController {
     @objc fileprivate func ready() {
         if let selectedCategoryIndexPath {
-            action(categoryNames[selectedCategoryIndexPath.item])
+            action(Model.shared.categories[selectedCategoryIndexPath.item])
             dismiss(animated: true)
         }
     }
