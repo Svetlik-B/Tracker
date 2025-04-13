@@ -6,10 +6,11 @@ private enum Constant {
 }
 
 final class TrackersViewController: UIViewController {
+    var categories: [TrackerCategory] = [] { didSet { resetView()} }
     var completedTrackers: [TrackerRecord] = []
     var haveTrackers: Bool {
         var count: Int = 0
-        for category in Model.shared.categories {
+        for category in categories {
             count += category.trackers.count
         }
         return count > 0
@@ -25,12 +26,12 @@ final class TrackersViewController: UIViewController {
         collectionViewLayout: layout
     )
 
-
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .App.white
         setupUI()
         mainStack()
+        categories = Model.shared.categories(for: selectedWeekday)
     }
 }
 
@@ -67,21 +68,22 @@ final class TrackerCell: UICollectionViewCell {
         var count: Int?
         var completed: Bool?
     }
-    
+
     func configure(model: ViewModel) {
         colorView.backgroundColor = model.color
         button.tintColor = model.color
         cellLabel.text = model.text
         emojiLabel.text = model.emoji
         let count = model.count ?? 0
-        dayLabel.text = switch count {
-        case let c where c % 100 >= 10 && c % 100 <= 20: "\(c) дней"
-        case let c where c % 10 == 1 : "\(c) день"
-        case let c where c % 10 == 2 : "\(c) дня"
-        case let c where c % 10 == 3 : "\(c) дня"
-        case let c where c % 10 == 4 : "\(c) дня"
-        default: "\(count) дней"
-        }
+        dayLabel.text =
+            switch count {
+            case let c where c % 100 >= 10 && c % 100 <= 20: "\(c) дней"
+            case let c where c % 10 == 1: "\(c) день"
+            case let c where c % 10 == 2: "\(c) дня"
+            case let c where c % 10 == 3: "\(c) дня"
+            case let c where c % 10 == 4: "\(c) дня"
+            default: "\(count) дней"
+            }
     }
 
     static let reuseIdentifier = String(describing: TrackerCell.self)
@@ -100,7 +102,7 @@ final class TrackerCell: UICollectionViewCell {
         super.init(coder: coder)
         setUp()
     }
-    
+
     func setUp() {
         colorView.layer.cornerRadius = 16
         colorView.layer.borderWidth = 1
@@ -172,16 +174,16 @@ final class TrackerCell: UICollectionViewCell {
             .button34X34.withRenderingMode(.alwaysTemplate),
             for: .normal
         )
-//        button.setBackgroundImage(
-//            .circle.withRenderingMode(.alwaysTemplate),
-//            for: .normal
-//        )
-//        button.setImage(
-//            .done.withTintColor(.App.white),
-//            for: .normal
-//        )
-//        button.isEnabled = false
-//        button.layer.opacity = 0.3
+        //        button.setBackgroundImage(
+        //            .circle.withRenderingMode(.alwaysTemplate),
+        //            for: .normal
+        //        )
+        //        button.setImage(
+        //            .done.withTintColor(.App.white),
+        //            for: .normal
+        //        )
+        //        button.isEnabled = false
+        //        button.layer.opacity = 0.3
 
         let hStack = UIStackView(
             arrangedSubviews: [
@@ -219,7 +221,6 @@ final class TrackerCell: UICollectionViewCell {
         stack.addArrangedSubview(view)
 
         contentView.addSubview(stack)
-
     }
 }
 
@@ -241,7 +242,7 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
         layout collectionViewLayout: UICollectionViewLayout,
         referenceSizeForHeaderInSection section: Int
     ) -> CGSize {
-        guard Model.shared.categories[section].trackers.count > 0 else {
+        guard categories[section].trackers.count > 0 else {
             return .zero
         }
         return .init(width: 0, height: section == 0 ? 54 : 46)
@@ -251,13 +252,13 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
 // MARK: - UICollectionViewDataSource
 extension TrackersViewController: UICollectionViewDataSource {
     func numberOfSections(in collectionView: UICollectionView) -> Int {
-        Model.shared.categories.count
+        categories.count
     }
     func collectionView(
         _ collectionView: UICollectionView,
         numberOfItemsInSection section: Int
     ) -> Int {
-        Model.shared.categories[section].trackers.count
+        categories[section].trackers.count
     }
 
     func collectionView(
@@ -269,16 +270,15 @@ extension TrackersViewController: UICollectionViewDataSource {
             for: indexPath
         )
         if let cell = cell as? TrackerCell {
-            let tracker = Model.shared
-                .categories[indexPath.section]
-                .trackers[indexPath.item]
-            cell.configure(model: .init(
-                emoji: tracker.emoji,
-                text: tracker.name,
-                color: tracker.color,
-                count: 1122,
-                completed: false
-            ))
+            let tracker = categories[indexPath.section].trackers[indexPath.item]
+            cell.configure(
+                model: .init(
+                    emoji: tracker.emoji,
+                    text: tracker.name,
+                    color: tracker.color,
+                    count: 1122,
+                    completed: false
+                ))
         }
         return cell
     }
@@ -293,7 +293,7 @@ extension TrackersViewController: UICollectionViewDataSource {
             for: indexPath
         )
         if let header = header as? TrackerHeader {
-            header.label.text = Model.shared.categories[indexPath.section].name
+            header.label.text = categories[indexPath.section].name
         }
         return header
     }
@@ -328,7 +328,6 @@ extension TrackersViewController {
             right: Constant.sectionInset
         )
 
-        collectionView.isHidden = !haveTrackers
         collectionView.backgroundColor = .App.white
         collectionView.dataSource = self
         collectionView.delegate = self
@@ -351,7 +350,6 @@ extension TrackersViewController {
         questionLabel.textColor = .App.black
         questionLabel.font = UIFont.systemFont(ofSize: 12, weight: .medium)
 
-        imageContainerView.isHidden = haveTrackers
         mainStack.addArrangedSubview(imageContainerView)
 
         let imageStack = UIStackView()
@@ -370,7 +368,6 @@ extension TrackersViewController {
         filterButton.backgroundColor = .App.blue
         filterButton.tintColor = .white
         filterButton.layer.cornerRadius = 16
-        filterButton.isHidden = !haveTrackers
 
         filterButton.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(filterButton)
@@ -393,11 +390,7 @@ extension TrackersViewController {
         trackerTypeSelectionViewController.action = { [weak self] tracker in
             guard let self else { return }
             Model.shared.add(tracker: tracker)
-            self.collectionView.reloadData()
-            
-            self.collectionView.isHidden = !self.haveTrackers
-            self.filterButton.isHidden = !self.haveTrackers
-            self.imageContainerView.isHidden = self.haveTrackers
+            self.resetView()
         }
         let vc = UINavigationController(rootViewController: trackerTypeSelectionViewController)
         vc.modalPresentationStyle = .pageSheet
@@ -419,11 +412,40 @@ extension TrackersViewController {
         datePicker.datePickerMode = .date
         datePicker.preferredDatePickerStyle = .compact
         datePicker.locale = Locale(identifier: "ru_Ru")
+        datePicker.addTarget(
+            self,
+            action: #selector(datePickerEvent),
+            for: .editingDidEnd
+        )
 
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: datePicker)
     }
     @objc fileprivate func setDate() {
         print(#function)
+    }
+    @objc fileprivate func datePickerEvent() {
+        categories = Model.shared.categories(for: selectedWeekday)
+    }
+    fileprivate func resetView() {
+        self.collectionView.isHidden = !self.haveTrackers
+        self.filterButton.isHidden = !self.haveTrackers
+        self.imageContainerView.isHidden = self.haveTrackers
+        collectionView.reloadData()
+    }
+    fileprivate var selectedWeekday: Tracker.Weekday {
+        let weekdayComponent = datePicker.calendar.dateComponents(
+            [.weekday],
+            from: datePicker.date
+        )
+        return switch weekdayComponent.weekday ?? 0 {
+        case 2: .monday
+        case 3: .tuesday
+        case 4: .wednesday
+        case 5: .thursday
+        case 6: .friday
+        case 7: .saturday
+        default: .sunday
+        }
     }
 }
 

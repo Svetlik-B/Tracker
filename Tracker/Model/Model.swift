@@ -16,7 +16,15 @@ final class Model {
                         name: "Tacker",
                         color: .Tracker.color4,
                         emoji: "😻",
-                        schedule: [.monday, .wednesday]
+                        schedule: [.monday, .sunday]
+                    ),
+                    .init(
+                        id: UUID(),
+                        categoryID: UUID(),
+                        name: "Tacker",
+                        color: .Tracker.color4,
+                        emoji: "😻",
+                        schedule: [.monday]
                     )
                 ]
             ),
@@ -35,6 +43,19 @@ extension Model {
                 id: category.id,
                 name: category.name,
                 trackers: category.trackers + [tracker]
+            )
+        }
+    }
+    func categories(for weekday: Tracker.Weekday) -> [TrackerCategory] {
+        Model.shared.categories.compactMap { category in
+            let trackers: [Tracker] = category.trackers.compactMap { tracker in
+                tracker.schedule.contains(weekday) ? tracker : nil
+            }
+            guard !trackers.isEmpty else { return nil }
+            return TrackerCategory(
+                id: category.id,
+                name: category.name,
+                trackers: trackers
             )
         }
     }
