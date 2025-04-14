@@ -13,8 +13,8 @@ final class CreateHabitViewController: UIViewController {
     var category: TrackerCategory? { didSet { updateButtonState() } }
     //    var categoryName: String?  { didSet { updateButtonState() }}
     var schedule = Tracker.Schedule() { didSet { updateButtonState() } }
-    var selectedEmojiIndexPath = IndexPath(item: 0, section: Section.emoji.rawValue)
-    var selectedColorIndexPath = IndexPath(item: 0, section: Section.color.rawValue)
+    var selectedEmojiIndexPath: IndexPath?
+    var selectedColorIndexPath: IndexPath?
 
     private let createButton = UIButton(type: .system)
     private let collectionViewLayout = UICollectionViewFlowLayout()
@@ -507,6 +507,8 @@ extension CreateHabitViewController {
         trackerName != ""
             && !schedule.isEmpty
             && category != nil
+            && selectedColorIndexPath != nil
+            && selectedEmojiIndexPath != nil
     }
 
     fileprivate func updateButtonState() {
@@ -662,8 +664,8 @@ extension CreateHabitViewController {
             id: UUID(),
             categoryID: category?.id ?? UUID(),
             name: trackerName,
-            color: trackerColors[selectedColorIndexPath.item],
-            emoji: trackerEmoji[selectedEmojiIndexPath.item],
+            color: trackerColors[selectedColorIndexPath!.item],
+            emoji: trackerEmoji[selectedEmojiIndexPath!.item],
             schedule: schedule
         )
         action(tracker)
@@ -712,6 +714,6 @@ private let trackerEmoji = [
     "😪",
 ]
 
-#Preview {
-    UINavigationController(rootViewController: CreateHabitViewController())
-}
+//#Preview {
+//    UINavigationController(rootViewController: CreateHabitViewController())
+//}

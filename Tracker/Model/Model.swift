@@ -2,35 +2,10 @@ import Foundation
 
 final class Model {
     static let shared = Model()
-    var categories: [TrackerCategory]
-
-    private init() {
-        self.categories = [
-            TrackerCategory(
-                id: UUID(),
-                name: "First",
-                trackers: [
-                    .init(
-                        id: UUID(),
-                        categoryID: UUID(),
-                        name: "Tacker",
-                        color: .Tracker.color4,
-                        emoji: "😻",
-                        schedule: [.monday, .sunday]
-                    ),
-                    .init(
-                        id: UUID(),
-                        categoryID: UUID(),
-                        name: "Tacker",
-                        color: .Tracker.color4,
-                        emoji: "😻",
-                        schedule: [.monday]
-                    )
-                ]
-            ),
-            TrackerCategory(id: UUID(), name: "Second", trackers: []),
-        ]
-    }
+    var categories: [TrackerCategory] = [
+        .init(id: UUID(), name: "Тестовая привычка", trackers: [])
+    ]
+    var records: [TrackerRecord] = []
 }
 
 // MARK: - Interface
@@ -58,5 +33,31 @@ extension Model {
                 trackers: trackers
             )
         }
+    }
+    func count(trackerId: UUID) -> Int {
+        records
+            .filter { $0.id == trackerId }
+            .count
+    }
+    func addRecord(trackerId: UUID, date: Date) {
+        records.append(TrackerRecord(id: trackerId, date: date))
+    }
+    func deleteRecord(trackerId: UUID, date: Date) {
+        records.removeAll {
+            $0.id == trackerId
+                && Calendar.current.isDate($0.date, inSameDayAs: date)
+        }
+    }
+    func isCompleted(trackerId: UUID, on date: Date) -> Bool {
+        var result = false
+        for record in records {
+            guard
+                record.id == trackerId,
+                Calendar.current.isDate(record.date, inSameDayAs: date)
+            else { continue }
+            result = true
+            break
+        }
+        return result
     }
 }

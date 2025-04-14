@@ -14,7 +14,6 @@ final class TabBarController: UITabBarController {
     }
 
     private func setupViewControllers() {
-
         let tracker = TrackersViewController()
         let trackerViewController = UINavigationController(rootViewController: tracker)
         trackerViewController.tabBarItem = UITabBarItem(
@@ -34,11 +33,11 @@ final class TabBarController: UITabBarController {
         viewControllers = [
             trackerViewController, statisticsViewController,
         ]
-        tabBar.tintColor = .systemBlue
+        tabBar.tintColor = .App.blue
 
     }
 }
 
-#Preview {
-    TabBarController()
-}
+//#Preview {
+//    TabBarController()
+//}

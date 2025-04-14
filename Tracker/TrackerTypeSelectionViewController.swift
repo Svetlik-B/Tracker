@@ -27,7 +27,7 @@ extension TrackerTypeSelectionViewController {
         button.addTarget(self, action: selector, for: .touchUpInside)
         return button
     }
-    
+
     @objc fileprivate func createHabit() {
         let createHabitViewController = CreateHabitViewController()
         createHabitViewController.action = { [weak self] tracker in
@@ -42,7 +42,7 @@ extension TrackerTypeSelectionViewController {
     }
 
     @objc fileprivate func createEvent() {
-        print("Создать событие")
+        print("TODO: Создать событие")
     }
 
     fileprivate func setupUI() {
@@ -73,6 +73,6 @@ extension TrackerTypeSelectionViewController {
     }
 }
 
-#Preview {
-    UINavigationController(rootViewController: TrackerTypeSelectionViewController())
-}
+//#Preview {
+//    UINavigationController(rootViewController: TrackerTypeSelectionViewController())
+//}

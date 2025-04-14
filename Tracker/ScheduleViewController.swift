@@ -127,7 +127,7 @@ extension ScheduleViewController: UICollectionViewDataSource {
                 self?.schedule.remove(day)
             }
         }
-        
+
         return cell
     }
 }
@@ -141,7 +141,7 @@ extension ScheduleViewController: UICollectionViewDelegateFlowLayout {
     ) -> CGSize {
         .init(
             width: collectionView.bounds.width - 2 * 16,
-            height: 75  
+            height: 75
         )
     }
 }
@@ -211,6 +211,6 @@ extension ScheduleViewController {
 
 }
 
-#Preview {
-    UINavigationController(rootViewController: ScheduleViewController())
-}
+//#Preview {
+//    UINavigationController(rootViewController: ScheduleViewController())
+//}

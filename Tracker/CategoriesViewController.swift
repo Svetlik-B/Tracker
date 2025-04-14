@@ -217,6 +217,6 @@ extension CategoriesViewController {
 
 }
 
-#Preview {
-    UINavigationController(rootViewController: CategoriesViewController())
-}
+//#Preview {
+//    UINavigationController(rootViewController: CategoriesViewController())
+//}

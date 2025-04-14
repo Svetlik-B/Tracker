@@ -6,7 +6,7 @@ struct Tracker {
         static func < (lhs: Tracker.Weekday, rhs: Tracker.Weekday) -> Bool {
             lhs.index < rhs.index
         }
-        
+
         case monday = "Понедельник"
         case tuesday = "Вторник"
         case wednesday = "Среда"
