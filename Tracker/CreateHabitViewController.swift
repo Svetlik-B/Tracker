@@ -11,10 +11,9 @@ final class CreateHabitViewController: UIViewController {
     var action: (Tracker) -> Void = { _ in }
     var trackerName = "" { didSet { updateButtonState() } }
     var category: TrackerCategory? { didSet { updateButtonState() } }
-    //    var categoryName: String?  { didSet { updateButtonState() }}
     var schedule = Tracker.Schedule() { didSet { updateButtonState() } }
-    var selectedEmojiIndexPath: IndexPath?
-    var selectedColorIndexPath: IndexPath?
+    var selectedEmojiIndexPath: IndexPath? { didSet { updateButtonState() } }
+    var selectedColorIndexPath: IndexPath? { didSet { updateButtonState() } }
 
     private let createButton = UIButton(type: .system)
     private let collectionViewLayout = UICollectionViewFlowLayout()

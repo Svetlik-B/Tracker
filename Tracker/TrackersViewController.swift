@@ -31,7 +31,7 @@ final class TrackersViewController: UIViewController {
         view.backgroundColor = .App.white
         setupUI()
         mainStack()
-        categories = Model.shared.categories(for: selectedWeekday)
+        categories = Model.shared.categories
     }
 }
 
@@ -412,12 +412,15 @@ extension TrackersViewController {
         trackerTypeSelectionViewController.action = { [weak self] tracker in
             guard let self else { return }
             Model.shared.add(tracker: tracker)
-            categories = Model.shared.categories(for: selectedWeekday)
+            print(tracker)
+
+            categories = Model.shared.categories
         }
         let vc = UINavigationController(rootViewController: trackerTypeSelectionViewController)
         vc.modalPresentationStyle = .pageSheet
         present(vc, animated: true)
     }
+
     fileprivate func setupUI() {
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationController?.navigationBar.tintColor = .App.black
@@ -443,7 +446,7 @@ extension TrackersViewController {
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: datePicker)
     }
     @objc fileprivate func datePickerEvent() {
-        categories = Model.shared.categories(for: selectedWeekday)
+        categories = Model.shared.categories
     }
     fileprivate func resetView() {
         collectionView.isHidden = !haveTrackers
