@@ -3,7 +3,7 @@ import Foundation
 final class Model {
     static let shared = Model()
     var categories: [TrackerCategory] = [
-        .init(id: UUID(), name: "Тестовая привычка", trackers: [])
+        .init(id: UUID(), name: "Тестовая категория", trackers: [])
     ]
     var records: [TrackerRecord] = []
 }

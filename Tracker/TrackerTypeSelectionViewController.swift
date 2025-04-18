@@ -28,21 +28,26 @@ extension TrackerTypeSelectionViewController {
         return button
     }
 
-    @objc fileprivate func createHabit() {
-        let createHabitViewController = CreateHabitViewController()
-        createHabitViewController.action = { [weak self] tracker in
+    fileprivate func createTracker(needsSchedule: Bool) {
+        let editTrackerViewController = EditTrackerViewController()
+        editTrackerViewController.needsSchedule = needsSchedule
+        editTrackerViewController.action = { [weak self] tracker in
             self?.dismiss(animated: true)
             self?.action?(tracker)
         }
         let vc = UINavigationController(
-            rootViewController: createHabitViewController
+            rootViewController: editTrackerViewController
         )
         vc.modalPresentationStyle = .pageSheet
         present(vc, animated: true)
     }
+    
+    @objc fileprivate func createHabit() {
+        createTracker(needsSchedule: true)
+    }
 
     @objc fileprivate func createEvent() {
-        print("TODO: Создать событие")
+        createTracker(needsSchedule: false)
     }
 
     fileprivate func setupUI() {

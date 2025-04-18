@@ -1,6 +1,6 @@
 import UIKit
 
-final class CreateHabitViewController: UIViewController {
+final class EditTrackerViewController: UIViewController {
     enum Section: Int, CaseIterable {
         case nameInput
         case details
@@ -8,6 +8,7 @@ final class CreateHabitViewController: UIViewController {
         case color
     }
 
+    var needsSchedule = true
     var action: (Tracker) -> Void = { _ in }
     var trackerName = "" { didSet { updateButtonState() } }
     var category: TrackerCategory? { didSet { updateButtonState() } }
@@ -29,7 +30,7 @@ final class CreateHabitViewController: UIViewController {
 }
 
 // MARK: - UITextFieldDelegate
-extension CreateHabitViewController: UITextFieldDelegate {
+extension EditTrackerViewController: UITextFieldDelegate {
     func textField(
         _ textField: UITextField, shouldChangeCharactersIn range: NSRange,
         replacementString string: String
@@ -51,7 +52,7 @@ extension CreateHabitViewController: UITextFieldDelegate {
 }
 
 // MARK: - UICollectionViewDataSource
-extension CreateHabitViewController: UICollectionViewDataSource {
+extension EditTrackerViewController: UICollectionViewDataSource {
     func numberOfSections(in collectionView: UICollectionView) -> Int {
         Section.allCases.count
     }
@@ -64,7 +65,7 @@ extension CreateHabitViewController: UICollectionViewDataSource {
 
         return switch section {
         case .nameInput: 1
-        case .details: 2
+        case .details: needsSchedule ? 2 : 1
         case .emoji: trackerEmoji.count
         case .color: trackerColors.count
         }
@@ -89,15 +90,27 @@ extension CreateHabitViewController: UICollectionViewDataSource {
                 cell.textField.delegate = self
             }
         case .details:
-            if indexPath.item == 0 {
+            if indexPath.item == 0 {  // Категория
                 cell = collectionView.dequeueReusableCell(
                     withReuseIdentifier: TrackerCategoryCell.reuseIdentifier,
                     for: indexPath
                 )
-                if let cell = cell as? TrackerCategoryCell, let category {
-                    cell.categoryLabel.text = category.name
+                if let cell = cell as? TrackerCategoryCell {
+                    cell.categoryLabel.text = category?.name
+                    cell.contentView.layer.maskedCorners =
+                        needsSchedule
+                        ? [
+                            .layerMinXMinYCorner,
+                            .layerMaxXMinYCorner,
+                        ]
+                        : [
+                            .layerMinXMinYCorner,
+                            .layerMaxXMinYCorner,
+                            .layerMinXMaxYCorner,
+                            .layerMaxXMaxYCorner,
+                        ]
                 }
-            } else {
+            } else {  // Расписание
                 cell = collectionView.dequeueReusableCell(
                     withReuseIdentifier: TrackerScheduleCell.reuseIdentifier,
                     for: indexPath
@@ -169,7 +182,7 @@ extension CreateHabitViewController: UICollectionViewDataSource {
 }
 
 // MARK: - UICollectionViewDelegateFlowLayout
-extension CreateHabitViewController: UICollectionViewDelegateFlowLayout {
+extension EditTrackerViewController: UICollectionViewDelegateFlowLayout {
     func collectionView(
         _ collectionView: UICollectionView,
         layout collectionViewLayout: UICollectionViewLayout,
@@ -319,10 +332,6 @@ final class TrackerCategoryCell: UICollectionViewCell {
     private func setupUI() {
         contentView.backgroundColor = .App.background
         contentView.layer.cornerRadius = 16
-        contentView.layer.maskedCorners = [
-            .layerMinXMinYCorner,
-            .layerMaxXMinYCorner,
-        ]
 
         let hStack = UIStackView()
         hStack.axis = .horizontal
@@ -501,10 +510,10 @@ private enum Constant {
     static let baseMagrin: CGFloat = 16
 }
 
-extension CreateHabitViewController {
+extension EditTrackerViewController {
     fileprivate var isReady: Bool {
         trackerName != ""
-            && !schedule.isEmpty
+            && (!needsSchedule || !schedule.isEmpty)
             && category != nil
             && selectedColorIndexPath != nil
             && selectedEmojiIndexPath != nil
@@ -547,7 +556,10 @@ extension CreateHabitViewController {
         dismiss(animated: true)
     }
     fileprivate func setupUI() {
-        title = "Новая привычка"
+        title =
+            needsSchedule
+            ? "Новая привычка"
+            : "Новое нерегулярное событие"
         view.backgroundColor = .systemBackground
 
         let vStack = UIStackView()
