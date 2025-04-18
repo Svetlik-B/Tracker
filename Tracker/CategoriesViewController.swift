@@ -13,19 +13,33 @@ final class CategoriesCell: UICollectionViewCell {
     static let reuseIdentifier = String(describing: ScheduleCell.self)
     enum Kind {
         case top
-        case middle
         case bottom
     }
     let label = UILabel()
     let checkmark = UIImageView()
     let divider = UIView()
-    var kind: Kind = .middle {
+    var kind: Set<Kind> = [] {
         didSet {
             contentView.layer.maskedCorners =
                 switch kind {
-                case .top: [.layerMinXMinYCorner, .layerMaxXMinYCorner]
-                case .middle: []
-                case .bottom: [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
+                case [.top, .bottom]:
+                    [
+                        .layerMinXMinYCorner,
+                        .layerMaxXMinYCorner,
+                        .layerMinXMaxYCorner,
+                        .layerMaxXMaxYCorner,
+                    ]
+                case [.top]:
+                    [
+                        .layerMinXMinYCorner,
+                        .layerMaxXMinYCorner,
+                    ]
+                case [.bottom]:
+                    [
+                        .layerMinXMaxYCorner,
+                        .layerMaxXMaxYCorner,
+                    ]
+                default: []
                 }
         }
     }
@@ -41,7 +55,7 @@ final class CategoriesCell: UICollectionViewCell {
     override func prepareForReuse() {
         divider.isHidden = false
         checkmark.isHidden = true
-        kind = .middle
+        kind = []
     }
     func setupUI() {
         divider.backgroundColor = .divider
@@ -111,10 +125,11 @@ extension CategoriesViewController: UICollectionViewDataSource {
 
         cell.label.text = Model.shared.categories[indexPath.item].name
         if indexPath.item == 0 {
-            cell.kind = .top
+            cell.kind.insert(.top)
             cell.divider.isHidden = true
-        } else if indexPath.item == Model.shared.categories.count - 1 {
-            cell.kind = .bottom
+        }
+        if indexPath.item == Model.shared.categories.count - 1 {
+            cell.kind.insert(.bottom)
         }
         cell.checkmark.isHidden = indexPath != selectedCategoryIndexPath
 
