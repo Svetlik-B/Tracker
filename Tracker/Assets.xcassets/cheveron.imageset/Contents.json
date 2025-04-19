@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "cheveron.svg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
