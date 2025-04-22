@@ -89,6 +89,7 @@ extension TrackersViewController: UICollectionViewDataSource {
         )
         //        let tracker = categories[indexPath.section].trackers[indexPath.item]
         let trackerCoreData = fetchedResultsController.object(at: indexPath)
+        print(ScheduleTransformer.schedule(from: trackerCoreData.schedule))
         if let cell = cell as? TrackerCell {
             let isCompleted = false  // TODO:
             //            Model.shared.isCompleted(
@@ -111,7 +112,7 @@ extension TrackersViewController: UICollectionViewDataSource {
                 model: .init(
                     emoji: trackerCoreData.emoji ?? "",
                     text: trackerCoreData.name ?? "",
-                    color: UIColorMarshalling().color(from: trackerCoreData.color ?? ""),
+                    color: UIColorTransformer.color(from: trackerCoreData.color ?? ""),
                     count: 0,  // TODO: Model.shared.count(trackerId: tracker.id),
                     completed: isCompleted,
                     action: {}  // TODO:

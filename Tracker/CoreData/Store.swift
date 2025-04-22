@@ -21,7 +21,7 @@ enum Store {
 // MARK: - Implementation
 extension Store {
     fileprivate static func clearData(context: NSManagedObjectContext) {
-        let request = NSFetchRequest<TrackerCategoryCoreData>(entityName: "TrackerCategoryCoreData")
+        let request = TrackerCategoryCoreData.fetchRequest()
         do {
             let categories = try context.fetch(request)
             for category in categories {
@@ -32,7 +32,7 @@ extension Store {
         }
     }
     fileprivate static func ensureOneCategoryExits(context: NSManagedObjectContext) {
-        let request = NSFetchRequest<TrackerCategoryCoreData>(entityName: "TrackerCategoryCoreData")
+        let request = TrackerCategoryCoreData.fetchRequest()
         do {
             let categories = try context.fetch(request)
             if categories.isEmpty {

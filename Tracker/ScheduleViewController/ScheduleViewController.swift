@@ -31,7 +31,7 @@ extension ScheduleViewController: UICollectionViewDataSource {
         else { return cell }
 
         let day = Tracker.Weekday.allCases[indexPath.item]
-        cell.label.text = day.rawValue
+        cell.label.text = day.long
         if indexPath.item == 0 {
             cell.kind = .top
             cell.divider.isHidden = true

@@ -3,7 +3,6 @@ import UIKit
 
 final class TrackerStore {
     private let context: NSManagedObjectContext
-    private let uiColorMarshalling = UIColorMarshalling()
     
     convenience init() {
         self.init(context: Store.persistentContainer.viewContext)
@@ -28,11 +27,11 @@ extension TrackerStore {
         }
 
         let trackerCoreData = TrackerCoreData(context: context)
-        trackerCoreData.color = uiColorMarshalling.hexString(from: tracker.color)
+        trackerCoreData.color = UIColorTransformer.hexString(from: tracker.color)
         trackerCoreData.emoji = tracker.emoji
         trackerCoreData.name = tracker.name
         trackerCoreData.category = categoryCoreData
-        // TODO: tracker.schedule
+        trackerCoreData.schedule = ScheduleTransformer.data(from: tracker.schedule)
         try context.save()
     }
 }
