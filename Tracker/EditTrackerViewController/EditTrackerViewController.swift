@@ -448,15 +448,14 @@ extension EditTrackerViewController {
             let category,
             isReady
         else { return }
-        let tracker = Tracker(
-            id: UUID(),
+        let store = TrackerStore()
+        try? store.addNewTracker(
             name: trackerName,
             color: Tracker.colors[selectedColorIndexPath!.item],
             emoji: Tracker.emoji[selectedEmojiIndexPath!.item],
-            schedule: schedule
+            schedule: schedule,
+            category: category
         )
-        let store = TrackerStore()
-        try? store.addNewTracker(tracker, category: category)
         dismiss(animated: true)
         onCreatedTracker?()
     }

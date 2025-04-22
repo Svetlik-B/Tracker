@@ -1,4 +1,3 @@
-import CoreData
 import UIKit
 
 final class TrackerHeader: UICollectionReusableView {

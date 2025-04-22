@@ -1,4 +1,3 @@
-import CoreData
 import UIKit
 
 private enum Constant {
@@ -7,7 +6,9 @@ private enum Constant {
 }
 
 final class TrackersViewController: UIViewController {
-    lazy var fetchedResultsController = createFetchedResultsController()
+    lazy var trackerDataSource = TrackerDataSource { [weak self] in
+        self?.updatedView()
+    }
 
     private let datePicker = UIDatePicker()
     private let searchBar = UISearchBar()
@@ -23,15 +24,6 @@ final class TrackersViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .App.white
         setupUI()
-        updatedView()
-    }
-}
-
-// MARK: - NSFetchedResultsControllerDelegate
-extension TrackersViewController: NSFetchedResultsControllerDelegate {
-    func controllerDidChangeContent(
-        _ controller: NSFetchedResultsController<any NSFetchRequestResult>
-    ) {
         updatedView()
     }
 }
@@ -54,9 +46,8 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
         layout collectionViewLayout: UICollectionViewLayout,
         referenceSizeForHeaderInSection section: Int
     ) -> CGSize {
-        guard fetchedResultsController.sections?[section] != nil else {
-            return .zero
-        }
+        guard trackerDataSource.sectionName(for: section) != nil
+        else { return .zero }
         return .init(width: 0, height: section == 0 ? 54 : 46)
     }
 }
@@ -64,19 +55,13 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
 // MARK: - UICollectionViewDataSource
 extension TrackersViewController: UICollectionViewDataSource {
     func numberOfSections(in collectionView: UICollectionView) -> Int {
-        fetchedResultsController.sections?.count ?? 0
-        //        categories.count
+        trackerDataSource.numberOfSections
     }
     func collectionView(
         _ collectionView: UICollectionView,
         numberOfItemsInSection section: Int
     ) -> Int {
-        guard let sectionInfo = fetchedResultsController.sections?[section] else {
-            return 0
-        }
-
-        return sectionInfo.numberOfObjects
-        //        categories[section].trackers.count
+        trackerDataSource.numberOfItems(in: section)
     }
 
     func collectionView(
@@ -87,35 +72,26 @@ extension TrackersViewController: UICollectionViewDataSource {
             withReuseIdentifier: TrackerCell.reuseIdentifier,
             for: indexPath
         )
-        //        let tracker = categories[indexPath.section].trackers[indexPath.item]
-        let trackerCoreData = fetchedResultsController.object(at: indexPath)
-        print(ScheduleTransformer.schedule(from: trackerCoreData.schedule))
+        let tracker = trackerDataSource.tracker(at: indexPath)
         if let cell = cell as? TrackerCell {
-            let isCompleted = false  // TODO:
-            //            Model.shared.isCompleted(
-            //                trackerId: tracker.id,
-            //                on: datePicker.date
-            //            )
-            //            let date = datePicker.date
-            //            let action = { [weak self] in
-            // TODO
-            //                let now = Calendar.current.startOfDay(for: Date())
-            //                let selected = Calendar.current.startOfDay(for: date)
-            //                guard now >= selected else { return }
-            //                if isCompleted {
-            //                    Model.shared.deleteRecord(trackerId: tracker.id, date: date)
-            //                } else {
-            //                    Model.shared.addRecord(trackerId: tracker.id, date: date)
-            //                }
-            //            }
             cell.configure(
                 model: .init(
-                    emoji: trackerCoreData.emoji ?? "",
-                    text: trackerCoreData.name ?? "",
-                    color: UIColorTransformer.color(from: trackerCoreData.color ?? ""),
-                    count: 0,  // TODO: Model.shared.count(trackerId: tracker.id),
-                    completed: isCompleted,
-                    action: {}  // TODO:
+                    emoji: tracker.emoji,
+                    text: tracker.name,
+                    color: tracker.color,
+                    count: tracker.count(),
+                    completed: tracker.isCompleted(datePicker.date),
+                    action: { [weak self] in
+                        guard let self else { return }
+                        do {
+                            try tracker.toggleCompleted(self.datePicker.date)
+                        } catch {
+                            print(
+                                "Не смогли переключить запись:",
+                                error.localizedDescription
+                            )
+                        }
+                    }
                 )
             )
         }
@@ -131,11 +107,8 @@ extension TrackersViewController: UICollectionViewDataSource {
             withReuseIdentifier: TrackerHeader.reuseIdentifier,
             for: indexPath
         )
-        guard let sectionInfo = fetchedResultsController.sections?[indexPath.section] else {
-            return header
-        }
         if let header = header as? TrackerHeader {
-            header.label.text = sectionInfo.name
+            header.label.text = trackerDataSource.sectionName(for: indexPath.section)
         }
         return header
     }
@@ -143,23 +116,6 @@ extension TrackersViewController: UICollectionViewDataSource {
 
 // MARK: - Implementation
 extension TrackersViewController {
-    fileprivate func createFetchedResultsController() -> NSFetchedResultsController<TrackerCoreData>
-    {
-        let fetchRequest: NSFetchRequest<TrackerCoreData> = NSFetchRequest(
-            entityName: "TrackerCoreData"
-        )
-        let sortDescriptor = NSSortDescriptor(key: "name", ascending: false)
-        fetchRequest.sortDescriptors = [sortDescriptor]
-        let controller = NSFetchedResultsController<TrackerCoreData>(
-            fetchRequest: fetchRequest,
-            managedObjectContext: Store.persistentContainer.viewContext,
-            sectionNameKeyPath: "category.name",
-            cacheName: "AllTrackers"
-        )
-        controller.delegate = self
-        try? controller.performFetch()
-        return controller
-    }
     @objc fileprivate func createTracker() {
         let trackerTypeSelectionViewController = TrackerTypeSelectionViewController()
         let vc = UINavigationController(rootViewController: trackerTypeSelectionViewController)
@@ -275,9 +231,10 @@ extension TrackersViewController {
 
     }
     @objc fileprivate func datePickerEvent() {
+        updatedView()
     }
     fileprivate func updatedView() {
-        let haveTrackers = (fetchedResultsController.sections?.count ?? 0) > 0
+        let haveTrackers = trackerDataSource.haveTrackers
         collectionView.isHidden = !haveTrackers
         filterButton.isHidden = !haveTrackers
         imageContainerView.isHidden = haveTrackers

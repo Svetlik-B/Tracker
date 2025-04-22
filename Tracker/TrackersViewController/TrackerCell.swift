@@ -1,4 +1,3 @@
-import CoreData
 import UIKit
 
 final class TrackerCell: UICollectionViewCell {

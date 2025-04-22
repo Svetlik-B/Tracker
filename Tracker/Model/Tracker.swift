@@ -2,6 +2,33 @@ import Foundation
 import UIKit
 
 struct Tracker {
+    var name: String
+    var color: UIColor
+    var emoji: String
+    var schedule: Schedule
+    var count: () -> Int
+    var isCompleted: (Date) -> Bool
+    var toggleCompleted: (Date) throws -> Void
+}
+
+extension Tracker {
+    static let colors: [UIColor] = [
+        .Tracker.color1, .Tracker.color2, .Tracker.color3,
+        .Tracker.color4, .Tracker.color5, .Tracker.color6,
+        .Tracker.color7, .Tracker.color8, .Tracker.color9,
+        .Tracker.color10, .Tracker.color11, .Tracker.color12,
+        .Tracker.color13, .Tracker.color14, .Tracker.color15,
+        .Tracker.color16, .Tracker.color17, .Tracker.color18,
+    ]
+    static let emoji = [
+        "🙂", "😻", "🌺", "🐶", "❤️", "😱",
+        "😇", "😡", "🥶", "🤔", "🙌", "🍔",
+        "🥦", "🏓", "🥇", "🎸", "🏝", "😪",
+    ]
+}
+
+extension Tracker {
+    typealias Schedule = Set<Weekday>
     enum Weekday: Int, CaseIterable, Codable {
         case monday
         case tuesday
@@ -11,41 +38,6 @@ struct Tracker {
         case saturday
         case sunday
     }
-    typealias Emoji = String
-    typealias Schedule = Set<Weekday>
-    var id: UUID
-    var name: String
-    var color: UIColor
-    var emoji: Emoji
-    var schedule: Schedule
-}
-
-extension Tracker {
-    static let colors: [UIColor] = [
-        .Tracker.color1,
-        .Tracker.color2,
-        .Tracker.color3,
-        .Tracker.color4,
-        .Tracker.color5,
-        .Tracker.color6,
-        .Tracker.color7,
-        .Tracker.color8,
-        .Tracker.color9,
-        .Tracker.color10,
-        .Tracker.color11,
-        .Tracker.color12,
-        .Tracker.color13,
-        .Tracker.color14,
-        .Tracker.color15,
-        .Tracker.color16,
-        .Tracker.color17,
-        .Tracker.color18,
-    ]
-    static let emoji = [
-        "🙂", "😻", "🌺", "🐶", "❤️", "😱",
-        "😇", "😡", "🥶", "🤔", "🙌", "🍔",
-        "🥦", "🏓", "🥇", "🎸", "🏝", "😪",
-    ]
 }
 
 extension Tracker.Weekday: Comparable {

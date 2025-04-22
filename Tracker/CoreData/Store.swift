@@ -6,12 +6,12 @@ enum Store {
         let container = NSPersistentContainer(name: "TrackerModel")
         container.loadPersistentStores(completionHandler: { (storeDescription, error) in
             if let error = error as NSError? {
-                fatalError("Unresolved error \(error), \(error.userInfo)")
+                fatalError("Ошибка создания стора \(error), \(error.userInfo)")
             }
         })
 //        clearData(context: container.viewContext)
         ensureOneCategoryExits(context: container.viewContext)
-        print("Container loaded")
+        print("Стор загружен")
         return container
     }()
 }
