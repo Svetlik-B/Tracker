@@ -9,12 +9,16 @@ final class EditTrackerViewController: UIViewController {
     }
 
     var needsSchedule = true
-    var action: (Tracker) -> Void = { _ in }
-    var trackerName = "" { didSet { updateButtonState() } }
-    var category: TrackerCategory? { didSet { updateButtonState() } }
-    var schedule = Tracker.Schedule() { didSet { updateButtonState() } }
-    var selectedEmojiIndexPath: IndexPath? { didSet { updateButtonState() } }
-    var selectedColorIndexPath: IndexPath? { didSet { updateButtonState() } }
+    var onCreatedTracker: (() -> Void)?
+    var trackerCategoryStore = TrackerCategoryStore()
+    
+    private var trackerName = "" { didSet { updateButtonState() } }
+    private lazy var category = try? trackerCategoryStore.getAllCategories().first {
+        didSet { updateButtonState() }
+    }
+    private var schedule = Tracker.Schedule() { didSet { updateButtonState() } }
+    private var selectedEmojiIndexPath: IndexPath? { didSet { updateButtonState() } }
+    private var selectedColorIndexPath: IndexPath? { didSet { updateButtonState() } }
 
     private let createButton = UIButton(type: .system)
     private let collectionViewLayout = UICollectionViewFlowLayout()
@@ -66,8 +70,8 @@ extension EditTrackerViewController: UICollectionViewDataSource {
         return switch section {
         case .nameInput: 1
         case .details: needsSchedule ? 2 : 1
-        case .emoji: trackerEmoji.count
-        case .color: trackerColors.count
+        case .emoji: Tracker.emoji.count
+        case .color: Tracker.colors.count
         }
     }
 
@@ -130,7 +134,7 @@ extension EditTrackerViewController: UICollectionViewDataSource {
                 for: indexPath
             )
             if let cell = cell as? TrackerEmojiCell {
-                cell.label.text = trackerEmoji[indexPath.item]
+                cell.label.text = Tracker.emoji[indexPath.item]
                 cell.contentView.backgroundColor =
                     indexPath == selectedEmojiIndexPath
                     ? .App.lightGray
@@ -142,9 +146,9 @@ extension EditTrackerViewController: UICollectionViewDataSource {
                 for: indexPath
             )
             if let cell = cell as? TrackerColorCell {
-                cell.colorView.backgroundColor = trackerColors[indexPath.item]
+                cell.colorView.backgroundColor = Tracker.colors[indexPath.item]
                 cell.contentView.layer.borderColor =
-                    trackerColors[indexPath.item]
+                    Tracker.colors[indexPath.item]
                     .withAlphaComponent(0.3)
                     .cgColor
                 cell.contentView.layer.borderWidth =
@@ -274,239 +278,10 @@ extension EditTrackerViewController: UICollectionViewDelegateFlowLayout {
     }
 }
 
-final class TrackerNameInputCell: UICollectionViewCell {
-    static let reuseIdentifier = String(describing: TrackerNameInputCell.self)
-    let textField = UITextField()
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        setupUI()
-    }
-    required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        setupUI()
-    }
-    private func setupUI() {
-        contentView.backgroundColor = .App.background
-        contentView.layer.cornerRadius = 16
-
-        textField.attributedPlaceholder = NSAttributedString(
-            string: "Введите название трекера",
-            attributes: [
-                .foregroundColor: UIColor.App.gray
-            ]
-        )
-        textField.font = .systemFont(ofSize: 17, weight: .regular)
-        textField.textColor = .App.black
-        textField.clearButtonMode = .whileEditing
-
-        contentView.addSubview(textField)
-        textField.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate(
-            [
-                textField.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-                textField.leadingAnchor.constraint(
-                    equalTo: contentView.leadingAnchor,
-                    constant: 16
-                ),
-                textField.trailingAnchor.constraint(
-                    equalTo: contentView.trailingAnchor,
-                    constant: -16
-                ),
-            ]
-        )
-    }
-}
-
-final class TrackerCategoryCell: UICollectionViewCell {
-    static let reuseIdentifier = String(describing: TrackerCategoryCell.self)
-    let categoryLabel = UILabel()
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        setupUI()
-    }
-    required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        setupUI()
-    }
-    private func setupUI() {
-        contentView.backgroundColor = .App.background
-        contentView.layer.cornerRadius = 16
-
-        let hStack = UIStackView()
-        hStack.axis = .horizontal
-
-        contentView.addSubview(hStack)
-        hStack.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            hStack.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            hStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            hStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-        ])
-
-        let vStack = UIStackView()
-        vStack.axis = .vertical
-        vStack.spacing = 2
-
-        hStack.addArrangedSubview(vStack)
-        // добавить spacer
-        hStack.addArrangedSubview(UIStackView())
-
-        let label = UILabel()
-        label.text = "Категория"
-        label.textColor = .App.black
-        vStack.addArrangedSubview(label)
-
-        categoryLabel.textColor = .App.gray
-        vStack.addArrangedSubview(categoryLabel)
-
-        let chevron = UIImageView(image: .cheveron)
-        chevron.contentMode = .center
-        hStack.addArrangedSubview(chevron)
-    }
-}
-
-final class TrackerScheduleCell: UICollectionViewCell {
-    static let reuseIdentifier = String(describing: TrackerScheduleCell.self)
-    let scheduleLabel = UILabel()
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        setupUI()
-    }
-    required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        setupUI()
-    }
-    private func setupUI() {
-        let divider = UIView()
-        divider.backgroundColor = .divider
-        contentView.addSubview(divider)
-        divider.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            divider.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            divider.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            divider.topAnchor.constraint(equalTo: contentView.topAnchor),
-            divider.heightAnchor.constraint(equalToConstant: 0.5),
-        ])
-
-        contentView.backgroundColor = .App.background
-        contentView.layer.cornerRadius = 16
-        contentView.layer.maskedCorners = [
-            .layerMinXMaxYCorner,
-            .layerMaxXMaxYCorner,
-        ]
-
-        let hStack = UIStackView()
-        hStack.axis = .horizontal
-
-        contentView.addSubview(hStack)
-        hStack.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            hStack.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            hStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            hStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-        ])
-
-        let vStack = UIStackView()
-        vStack.axis = .vertical
-        vStack.spacing = 2
-
-        hStack.addArrangedSubview(vStack)
-        // добавить spacer
-        hStack.addArrangedSubview(UIStackView())
-
-        let label = UILabel()
-        label.text = "Расписание"
-        label.textColor = .App.black
-        vStack.addArrangedSubview(label)
-
-        scheduleLabel.textColor = .App.gray
-        vStack.addArrangedSubview(scheduleLabel)
-
-        let chevron = UIImageView(image: .cheveron)
-        chevron.contentMode = .center
-        hStack.addArrangedSubview(chevron)
-
-    }
-}
-
-final class SectionHeaderView: UICollectionReusableView {
-    static let reuseIdentifier = String(describing: SectionHeaderView.self)
-    let label = UILabel()
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        setupUI()
-    }
-    required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        setupUI()
-    }
-    func setupUI() {
-        label.font = .systemFont(ofSize: 19, weight: .medium)
-        addSubview(label)
-        label.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 28),
-            label.centerYAnchor.constraint(equalTo: centerYAnchor),
-        ])
-    }
-}
-
-final class TrackerEmojiCell: UICollectionViewCell {
-    static let reuseIdentifier = String(describing: TrackerEmojiCell.self)
-    let label = UILabel()
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        setupUI()
-    }
-    required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        setupUI()
-    }
-    private func setupUI() {
-        contentView.layer.cornerRadius = 16
-
-        label.font = .systemFont(ofSize: 32, weight: .bold)
-        contentView.addSubview(label)
-        label.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            label.centerXAnchor.constraint(equalTo: contentView.centerXAnchor, constant: 2.5),
-            label.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            label.heightAnchor.constraint(equalToConstant: 40),
-            label.widthAnchor.constraint(equalToConstant: 40),
-        ])
-    }
-}
-
-final class TrackerColorCell: UICollectionViewCell {
-    static let reuseIdentifier = String(describing: TrackerColorCell.self)
-    let colorView = UIView()
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        setupUI()
-    }
-    required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        setupUI()
-    }
-    private func setupUI() {
-        contentView.layer.cornerRadius = 16
-        colorView.layer.cornerRadius = 8
-        contentView.addSubview(colorView)
-        colorView.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            colorView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-            colorView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            colorView.heightAnchor.constraint(equalToConstant: 40),
-            colorView.widthAnchor.constraint(equalToConstant: 40),
-        ])
-    }
-}
-
 // MARK: - Implementation
 
 private enum Constant {
+    case dummy
     static let baseMagrin: CGFloat = 16
 }
 
@@ -540,16 +315,16 @@ extension EditTrackerViewController {
     }
 
     fileprivate func selectCategories() {
-        let categoriesViewController = CategoriesViewController()
-        categoriesViewController.action = { [weak self] category in
-            self?.category = category
-            self?.collectionView.reloadData()
-        }
-        let viewC = UINavigationController(
-            rootViewController: categoriesViewController
-        )
-        viewC.modalPresentationStyle = .pageSheet
-        present(viewC, animated: true)
+        //        let categoriesViewController = CategoriesViewController()
+        //        categoriesViewController.action = { [weak self] category in
+        //            self?.category = category
+        //            self?.collectionView.reloadData()
+        //        }
+        //        let viewC = UINavigationController(
+        //            rootViewController: categoriesViewController
+        //        )
+        //        viewC.modalPresentationStyle = .pageSheet
+        //        present(viewC, animated: true)
     }
 
     @objc fileprivate func cancel() {
@@ -669,62 +444,23 @@ extension EditTrackerViewController {
         updateButtonState()
     }
     @objc fileprivate func createButtonTapped() {
-        guard isReady else { return }
-        dismiss(animated: true)
-        let tracker = Tracker(
-            id: UUID(),
-            categoryID: category?.id ?? UUID(),
+        guard
+            let category,
+            isReady
+        else { return }
+        let store = TrackerStore()
+        try? store.addNewTracker(
             name: trackerName,
-            color: trackerColors[selectedColorIndexPath!.item],
-            emoji: trackerEmoji[selectedEmojiIndexPath!.item],
-            schedule: schedule
+            color: Tracker.colors[selectedColorIndexPath!.item],
+            emoji: Tracker.emoji[selectedEmojiIndexPath!.item],
+            schedule: schedule,
+            category: category
         )
-        action(tracker)
+        dismiss(animated: true)
+        onCreatedTracker?()
     }
 }
 
-private let trackerColors: [UIColor] = [
-    .Tracker.color1,
-    .Tracker.color2,
-    .Tracker.color3,
-    .Tracker.color4,
-    .Tracker.color5,
-    .Tracker.color6,
-    .Tracker.color7,
-    .Tracker.color8,
-    .Tracker.color9,
-    .Tracker.color10,
-    .Tracker.color11,
-    .Tracker.color12,
-    .Tracker.color13,
-    .Tracker.color14,
-    .Tracker.color15,
-    .Tracker.color16,
-    .Tracker.color17,
-    .Tracker.color18,
-]
-
-private let trackerEmoji = [
-    "🙂",
-    "😻",
-    "🌺",
-    "🐶",
-    "❤️",
-    "😱",
-    "😇",
-    "😡",
-    "🥶",
-    "🤔",
-    "🙌",
-    "🍔",
-    "🥦",
-    "🏓",
-    "🥇",
-    "🎸",
-    "🏝",
-    "😪",
-]
-
-//#Preview {
-//    UINavigationController(rootViewController: CreateHabitViewController())
-//}
+#Preview {
+    UINavigationController(rootViewController: EditTrackerViewController())
+}

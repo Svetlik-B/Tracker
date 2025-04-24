@@ -21,10 +21,10 @@
 	</dict>
 	<key>UILaunchScreen</key>
 	<dict>
-		<key>UIImageName</key>
-		<string>Logo</string>
 		<key>UIColorName</key>
 		<string>App/blue</string>
+		<key>UIImageName</key>
+		<string>Logo</string>
 	</dict>
 </dict>
 </plist>

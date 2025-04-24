@@ -107,7 +107,7 @@ extension CategoriesViewController: UICollectionViewDataSource {
         _ collectionView: UICollectionView,
         numberOfItemsInSection section: Int
     ) -> Int {
-        Model.shared.categories.count
+        0  // Model.shared.categories.count
     }
 
     func collectionView(
@@ -123,14 +123,14 @@ extension CategoriesViewController: UICollectionViewDataSource {
         guard let cell = cell as? CategoriesCell
         else { return cell }
 
-        cell.label.text = Model.shared.categories[indexPath.item].name
+        // cell.label.text = Model.shared.categories[indexPath.item].name
         if indexPath.item == 0 {
             cell.kind.insert(.top)
             cell.divider.isHidden = true
         }
-        if indexPath.item == Model.shared.categories.count - 1 {
-            cell.kind.insert(.bottom)
-        }
+        //        if indexPath.item == Model.shared.categories.count - 1 {
+        //            cell.kind.insert(.bottom)
+        //        }
         cell.checkmark.isHidden = indexPath != selectedCategoryIndexPath
 
         return cell
@@ -166,10 +166,10 @@ extension CategoriesViewController: UICollectionViewDelegateFlowLayout {
 // MARK: - Implementation
 extension CategoriesViewController {
     @objc fileprivate func ready() {
-        if let selectedCategoryIndexPath {
-            action(Model.shared.categories[selectedCategoryIndexPath.item])
-            dismiss(animated: true)
-        }
+        // if let selectedCategoryIndexPath {
+        //      action(Model.shared.categories[selectedCategoryIndexPath.item])
+        //      dismiss(animated: true)
+        // }
     }
     fileprivate func setupUI() {
         view.backgroundColor = .App.white
@@ -232,6 +232,6 @@ extension CategoriesViewController {
 
 }
 
-//#Preview {
-//    UINavigationController(rootViewController: CategoriesViewController())
-//}
+#Preview {
+    UINavigationController(rootViewController: CategoriesViewController())
+}

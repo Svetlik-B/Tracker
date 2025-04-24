@@ -1,7 +1,6 @@
 import UIKit
 
 final class TrackerTypeSelectionViewController: UIViewController {
-    var action: ((Tracker) -> Void)?
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -31,9 +30,8 @@ extension TrackerTypeSelectionViewController {
     fileprivate func createTracker(needsSchedule: Bool) {
         let editTrackerViewController = EditTrackerViewController()
         editTrackerViewController.needsSchedule = needsSchedule
-        editTrackerViewController.action = { [weak self] tracker in
+        editTrackerViewController.onCreatedTracker = { [weak self] in
             self?.dismiss(animated: true)
-            self?.action?(tracker)
         }
         let vc = UINavigationController(
             rootViewController: editTrackerViewController
@@ -78,6 +76,6 @@ extension TrackerTypeSelectionViewController {
     }
 }
 
-//#Preview {
-//    UINavigationController(rootViewController: TrackerTypeSelectionViewController())
-//}
+#Preview {
+    UINavigationController(rootViewController: TrackerTypeSelectionViewController())
+}
