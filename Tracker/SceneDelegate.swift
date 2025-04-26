@@ -15,24 +15,30 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         window = UIWindow(windowScene: windowScene)
         let seenOnboarding = UserDefaults.standard.bool(forKey: Constant.seenOnboardingKey)
-        if seenOnboarding {
-            window?.rootViewController = TabBarController()
-        } else {
-            window?.rootViewController = OnboardingViewController(
-                viewModel: [
-                    .init(
-                        text: "Отслеживайте только то, что хотите",
-                        uiImage: .onboarding1,
-                        action: showTabBarController
-                    ),
-                    .init(
-                        text: "Даже если это не литры воды и йога",
-                        uiImage: .onboarding2,
-                        action: showTabBarController
-                    ),
-                ]
+        // TODO: remove
+        window?.rootViewController = UINavigationController(
+            rootViewController: CategoriesViewController(
+                viewModel: .init(categoryStore: TrackerCategoryStore()) { print($0) }
             )
-        }
+        )
+//        if seenOnboarding {
+//            window?.rootViewController = TabBarController()
+//        } else {
+//            window?.rootViewController = OnboardingViewController(
+//                viewModel: [
+//                    .init(
+//                        text: "Отслеживайте только то, что хотите",
+//                        uiImage: .onboarding1,
+//                        action: showTabBarController
+//                    ),
+//                    .init(
+//                        text: "Даже если это не литры воды и йога",
+//                        uiImage: .onboarding2,
+//                        action: showTabBarController
+//                    ),
+//                ]
+//            )
+//        }
 
         window?.makeKeyAndVisible()
     }

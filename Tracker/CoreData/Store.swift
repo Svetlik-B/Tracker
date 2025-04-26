@@ -9,8 +9,8 @@ enum Store {
                 fatalError("Ошибка создания стора \(error), \(error.userInfo)")
             }
         })
-//        clearData(context: container.viewContext)
-        ensureOneCategoryExits(context: container.viewContext)
+        clearData(context: container.viewContext)
+//        ensureOneCategoryExits(context: container.viewContext)
         print("Стор загружен")
         return container
     }()
@@ -21,6 +21,7 @@ enum Store {
 // MARK: - Implementation
 extension Store {
     fileprivate static func clearData(context: NSManagedObjectContext) {
+        print("удаляем все данные")
         let request = TrackerCategoryCoreData.fetchRequest()
         do {
             let categories = try context.fetch(request)

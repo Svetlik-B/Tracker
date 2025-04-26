@@ -1,145 +1,184 @@
 import UIKit
 
 final class CategoriesViewController: UIViewController {
-    var action: (TrackerCategory) -> Void = { _ in }
-    private var selectedCategoryIndexPath: IndexPath?
+    private let viewModel: ViewModel
+    private let placeholder = UIStackView()
+    private let tableView = UITableView(frame: .zero, style: .insetGrouped)
+
+    private var selectedCategory: TrackerCategory?
+
+    init(viewModel: ViewModel) {
+        self.viewModel = viewModel
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
+        viewModel.categoryStore.delegate = self
         setupUI()
     }
 }
 
-// MARK: - UICollectionViewDataSource
-extension CategoriesViewController: UICollectionViewDataSource {
-    func collectionView(
-        _ collectionView: UICollectionView,
-        numberOfItemsInSection section: Int
+// MARK: - Interface
+extension CategoriesViewController {
+    struct ViewModel {
+        var categoryStore: TrackerCategoryStore
+        var action: (TrackerCategory) -> Void
+    }
+}
+
+extension CategoriesViewController: TrackerCategoryStoreDelegate {
+    func trackerCategoryStoreDidChange(_ store: TrackerCategoryStore) {
+        updateUI()
+    }
+}
+
+// MARK: - UITableViewDataSource
+extension CategoriesViewController: UITableViewDataSource {
+    func tableView(
+        _ tableView: UITableView,
+        numberOfRowsInSection section: Int
     ) -> Int {
-        0  // Model.shared.categories.count
+        return viewModel.categoryStore.numberOfCategories
     }
 
-    func collectionView(
-        _ collectionView: UICollectionView,
-        cellForItemAt indexPath: IndexPath
-    )
-        -> UICollectionViewCell
-    {
-        let cell = collectionView.dequeueReusableCell(
-            withReuseIdentifier: CategoriesCell.reuseIdentifier,
+    func tableView(
+        _ tableView: UITableView,
+        cellForRowAt indexPath: IndexPath
+    ) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(
+            withIdentifier: "cell",
             for: indexPath
         )
-        guard let cell = cell as? CategoriesCell
-        else { return cell }
-
-        // cell.label.text = Model.shared.categories[indexPath.item].name
-        if indexPath.item == 0 {
-            cell.kind.insert(.top)
-            cell.divider.isHidden = true
-        }
-        //        if indexPath.item == Model.shared.categories.count - 1 {
-        //            cell.kind.insert(.bottom)
-        //        }
-        cell.checkmark.isHidden = indexPath != selectedCategoryIndexPath
-
+        let category = viewModel.categoryStore.category(at: indexPath)
+        cell.textLabel?.text = category.name
+        cell.textLabel?.textColor = .App.black
+        cell.backgroundColor = .App.background
+        cell.separatorInset = .init(top: 0, left: 16, bottom: 0, right: 16)
         return cell
     }
 }
 
-// MARK: - UICollectionViewDelegateFlowLayout
-extension CategoriesViewController: UICollectionViewDelegateFlowLayout {
-    func collectionView(
-        _ collectionView: UICollectionView,
-        layout collectionViewLayout: UICollectionViewLayout,
-        sizeForItemAt indexPath: IndexPath
-    ) -> CGSize {
-        .init(
-            width: collectionView.bounds.width - 2 * 16,
-            height: 75
-        )
-    }
-    func collectionView(
-        _ collectionView: UICollectionView,
-        didSelectItemAt indexPath: IndexPath
-    ) {
-        if selectedCategoryIndexPath == indexPath {
-            selectedCategoryIndexPath = nil
-            collectionView.reloadData()
-        } else {
-            selectedCategoryIndexPath = indexPath
-            collectionView.reloadData()
-        }
-    }
+// MARK: - UITableViewDelegate
+extension CategoriesViewController: UITableViewDelegate {
+
 }
 
 // MARK: - Implementation
 extension CategoriesViewController {
-    @objc fileprivate func ready() {
-        // if let selectedCategoryIndexPath {
-        //      action(Model.shared.categories[selectedCategoryIndexPath.item])
-        //      dismiss(animated: true)
-        // }
-    }
-    fileprivate func setupUI() {
-        view.backgroundColor = .App.white
-        title = "Категория"
-
-        let vStack = UIStackView()
-        vStack.axis = .vertical
-        vStack.spacing = 24
-
-        view.addSubview(vStack)
-        vStack.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate(
-            [
-                vStack.topAnchor.constraint(
-                    equalTo: view.safeAreaLayoutGuide.topAnchor,
-                    constant: 16
-                ),
-                vStack.bottomAnchor.constraint(
-                    equalTo: view.safeAreaLayoutGuide.bottomAnchor,
-                    constant: -24
-                ),
-                vStack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                vStack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            ]
-        )
-
-        let layout = UICollectionViewFlowLayout()
-        layout.scrollDirection = .vertical
-        layout.minimumLineSpacing = 0
-        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.backgroundColor = .App.white
-        collectionView.dataSource = self
-        collectionView.delegate = self
-        collectionView.register(
-            CategoriesCell.self,
-            forCellWithReuseIdentifier: CategoriesCell.reuseIdentifier
-        )
-        vStack.addArrangedSubview(collectionView)
-
+    fileprivate func setupButton() {
         let button = UIButton(type: .system)
         button.tintColor = .App.white
         button.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
         button.backgroundColor = .App.black
         button.layer.cornerRadius = 16
         button.setTitle("Добавить категорию", for: .normal)
-        button.heightAnchor.constraint(equalToConstant: 60).isActive = true
         button.layer.borderWidth = 1
-        button.addTarget(self, action: #selector(ready), for: .touchUpInside)
+        button.addTarget(
+            self,
+            action: #selector(onButtonTap),
+            for: .touchUpInside
+        )
 
-        let container = UIView()
-        vStack.addArrangedSubview(container)
-        container.addSubview(button)
+        view.addSubview(button)
         button.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate(
+            [
+                button.leadingAnchor.constraint(
+                    equalTo: view.leadingAnchor,
+                    constant: 20
+                ),
+                button.trailingAnchor.constraint(
+                    equalTo: view.trailingAnchor,
+                    constant: -20
+                ),
+                button.heightAnchor.constraint(equalToConstant: 60),
+                button.bottomAnchor.constraint(
+                    equalTo: view.safeAreaLayoutGuide.bottomAnchor,
+                    constant: -16
+                ),
+            ]
+        )
+    }
+
+    fileprivate func setupPlaceholder() {
+        let imageView = UIImageView(image: .collectionPlaceholder)
+        imageView.contentMode = .center
+
+        let label = UILabel()
+        label.text = "Категорий нет"
+
+        placeholder.addArrangedSubview(imageView)
+        placeholder.addArrangedSubview(label)
+        placeholder.axis = .vertical
+        placeholder.spacing = 8
+        placeholder.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(placeholder)
         NSLayoutConstraint.activate([
-            container.heightAnchor.constraint(equalToConstant: 60),
-            button.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 20),
-            button.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -20),
+            placeholder.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            placeholder.centerYAnchor.constraint(equalTo: view.centerYAnchor),
         ])
     }
 
+    fileprivate func setupTableView() {
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        tableView.rowHeight = 75
+        tableView.backgroundColor = .App.white
+        tableView.delegate = self
+        tableView.dataSource = self
+        tableView.separatorColor = .App.gray
+
+        view.addSubview(tableView)
+        tableView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+        ])
+    }
+
+    fileprivate func setupUI() {
+        view.backgroundColor = .App.white
+        title = "Категория"
+
+        setupPlaceholder()
+        setupTableView()
+        setupButton()
+        updateUI()
+    }
+
+    fileprivate func updateUI() {
+        let numberOfCategories = viewModel.categoryStore.numberOfCategories
+        placeholder.isHidden = numberOfCategories != 0
+        tableView.isHidden = numberOfCategories == 0
+        tableView.reloadData()
+    }
+
+    @objc fileprivate func onButtonTap() {
+        if let selectedCategory {
+            viewModel.action(selectedCategory)
+            dismiss(animated: true)
+            return
+        }
+
+        let count = viewModel.categoryStore.numberOfCategories
+        
+        try? viewModel.categoryStore
+            .addCategory(.init(name: "Новая категория \(count)"))
+
+        // TODO: category edit view controller
+    }
 }
 
 #Preview {
-    UINavigationController(rootViewController: CategoriesViewController())
+    UINavigationController(
+        rootViewController: CategoriesViewController(
+            viewModel: .init(categoryStore: TrackerCategoryStore()) { print($0) }
+        )
+    )
 }
