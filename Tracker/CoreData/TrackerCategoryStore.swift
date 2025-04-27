@@ -51,11 +51,25 @@ extension TrackerCategoryStore {
         let category = fetchController.object(at: indexPath)
         return TrackerCategory(name: category.name ?? "")
     }
+    func deleteCategory(at indexPath: IndexPath) throws {
+        let categoryToDelete = fetchController.object(at: indexPath)
+        context.delete(categoryToDelete)
+        try context.save()
+        
+    }
     func getAllCategories() throws -> [TrackerCategory] {
         let request = TrackerCategoryCoreData.fetchRequest()
         return try context.fetch(request).map { coreDateCategory in
             TrackerCategory(name: coreDateCategory.name ?? "")
         }
+    }
+    func updateCategory(
+        _ category: TrackerCategory,
+        at indexPath: IndexPath
+    ) throws {
+        let coreDataCategory = fetchController.object(at: indexPath)
+        coreDataCategory.name = category.name
+        try context.save()
     }
     func addCategory(_ category: TrackerCategory) throws {
         guard !categoryExists(category)

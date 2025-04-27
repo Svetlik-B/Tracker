@@ -23,8 +23,8 @@ final class EditCategoryViewController: UIViewController {
 // MARK: - Interface
 extension EditCategoryViewController {
     struct ViewModel {
-        var category: TrackerCategory?
-        var action: (TrackerCategory) -> Void
+        var categoryStore: TrackerCategoryStore
+        var indexPath: IndexPath?
     }
 }
 
@@ -44,7 +44,15 @@ extension EditCategoryViewController {
     @objc fileprivate func onButtonTap() {
         guard let text = textField.text, !text.isEmpty
         else { return }
-        viewModel.action(.init(name: text))
+        let category = TrackerCategory(name: text)
+        if let indexPath = viewModel.indexPath {
+            try? viewModel.categoryStore.updateCategory(
+                category,
+                at: indexPath
+            )
+        } else {
+            try? viewModel.categoryStore.addCategory(category)
+        }
         dismiss(animated: true)
     }
     
@@ -117,7 +125,9 @@ extension EditCategoryViewController {
                 .foregroundColor: UIColor.App.gray
             ]
         )
-        textField.text = viewModel.category?.name
+        if let indexPath = viewModel.indexPath {
+            textField.text = viewModel.categoryStore.category(at: indexPath).name
+        }
         textField.font = .systemFont(ofSize: 17, weight: .regular)
         textField.textColor = .App.black
         textField.addTarget(
@@ -149,7 +159,7 @@ extension EditCategoryViewController {
 #Preview {
     UINavigationController(
         rootViewController: EditCategoryViewController(
-            viewModel: .init(category: .init(name: "Test")) { print($0) }
+            viewModel: .init(categoryStore: TrackerCategoryStore())
         )
     )
 }

@@ -65,11 +65,51 @@ extension CategoriesViewController: UITableViewDataSource {
 
 // MARK: - UITableViewDelegate
 extension CategoriesViewController: UITableViewDelegate {
-
+    func tableView(
+        _ tableView: UITableView,
+        contextMenuConfigurationForRowAt indexPath: IndexPath,
+        point: CGPoint
+    ) -> UIContextMenuConfiguration? {
+        .init(
+            actionProvider: { action in
+                UIMenu(
+                    children: [
+                        UIAction(title: "Редактировать") { [weak self] _ in
+                            self?.editCategory(at: indexPath)
+                        },
+                        UIAction(title: "Удалить") { [weak self] _ in
+                            self?.deleteCategory(at: indexPath)
+                        },
+                    ]
+                )
+            }
+        )
+    }
 }
 
 // MARK: - Implementation
 extension CategoriesViewController {
+    fileprivate func editCategory(at indexPath: IndexPath) {
+        let viewController = EditCategoryViewController(
+            viewModel: .init(
+                categoryStore: viewModel.categoryStore,
+                indexPath: indexPath
+            )
+        )
+        viewController.modalPresentationStyle = .pageSheet
+        present(viewController, animated: true)
+    }
+    fileprivate func createCategory() {
+        let viewController = EditCategoryViewController(
+            viewModel: .init(categoryStore: viewModel.categoryStore)
+        )
+        viewController.modalPresentationStyle = .pageSheet
+        present(viewController, animated: true)
+
+    }
+    fileprivate func deleteCategory(at indexPath: IndexPath) {
+        try? viewModel.categoryStore.deleteCategory(at: indexPath)
+    }
     fileprivate func setupButton() {
         let button = UIButton(type: .system)
         button.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
@@ -165,14 +205,7 @@ extension CategoriesViewController {
             return
         }
 
-        let viewController = EditCategoryViewController(
-            viewModel: .init(category: nil) { [weak self] category in
-                try? self?.viewModel.categoryStore
-                    .addCategory(.init(name: category.name))
-            }
-        )
-        viewController.modalPresentationStyle = .pageSheet
-        present(viewController, animated: true)
+        createCategory()
     }
 }
 
