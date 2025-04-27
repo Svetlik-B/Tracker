@@ -14,13 +14,14 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
 
         window = UIWindow(windowScene: windowScene)
-        let seenOnboarding = UserDefaults.standard.bool(forKey: Constant.seenOnboardingKey)
         // TODO: remove
         window?.rootViewController = UINavigationController(
             rootViewController: CategoriesViewController(
                 viewModel: .init(categoryStore: TrackerCategoryStore()) { print($0) }
             )
         )
+        
+//        let seenOnboarding = UserDefaults.standard.bool(forKey: Constant.seenOnboardingKey)
 //        if seenOnboarding {
 //            window?.rootViewController = TabBarController()
 //        } else {

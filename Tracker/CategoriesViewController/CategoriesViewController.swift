@@ -72,12 +72,11 @@ extension CategoriesViewController: UITableViewDelegate {
 extension CategoriesViewController {
     fileprivate func setupButton() {
         let button = UIButton(type: .system)
-        button.tintColor = .App.white
         button.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
         button.backgroundColor = .App.black
         button.layer.cornerRadius = 16
         button.setTitle("Добавить категорию", for: .normal)
-        button.layer.borderWidth = 1
+        button.setTitleColor(.App.white, for: .normal)
         button.addTarget(
             self,
             action: #selector(onButtonTap),
@@ -166,12 +165,14 @@ extension CategoriesViewController {
             return
         }
 
-        let count = viewModel.categoryStore.numberOfCategories
-        
-        try? viewModel.categoryStore
-            .addCategory(.init(name: "Новая категория \(count)"))
-
-        // TODO: category edit view controller
+        let viewController = EditCategoryViewController(
+            viewModel: .init(category: nil) { [weak self] category in
+                try? self?.viewModel.categoryStore
+                    .addCategory(.init(name: category.name))
+            }
+        )
+        viewController.modalPresentationStyle = .pageSheet
+        present(viewController, animated: true)
     }
 }
 
