@@ -47,6 +47,9 @@ extension TrackerCategoryStore {
         else { return 0 }
         return sectionInfo.numberOfObjects
     }
+    func categoryCoreData(at indexPath: IndexPath) -> TrackerCategoryCoreData {
+        fetchController.object(at: indexPath)
+    }
     func category(at indexPath: IndexPath) -> TrackerCategory {
         let category = fetchController.object(at: indexPath)
         return TrackerCategory(name: category.name ?? "")
@@ -57,12 +60,6 @@ extension TrackerCategoryStore {
         try context.save()
         
     }
-    func getAllCategories() throws -> [TrackerCategory] {
-        let request = TrackerCategoryCoreData.fetchRequest()
-        return try context.fetch(request).map { coreDateCategory in
-            TrackerCategory(name: coreDateCategory.name ?? "")
-        }
-    }
     func updateCategory(
         _ category: TrackerCategory,
         at indexPath: IndexPath
@@ -71,24 +68,10 @@ extension TrackerCategoryStore {
         coreDataCategory.name = category.name
         try context.save()
     }
-    func addCategory(_ category: TrackerCategory) throws {
-        guard !categoryExists(category)
-        else {
-            return
-        }
+    func addCategory(_ category: TrackerCategory) throws -> IndexPath? {
         let coreDataCategory = TrackerCategoryCoreData(context: context)
         coreDataCategory.name = category.name
         try context.save()
-    }
-    func categoryExists(_ category: TrackerCategory) -> Bool {
-        let request = TrackerCategoryCoreData.fetchRequest()
-        request.predicate = NSPredicate(
-            format: "name == %@",
-            category.name
-        )
-        guard let result = try? context.fetch(request)
-        else { return false }
-
-        return !result.isEmpty
+        return fetchController.indexPath(forObject: coreDataCategory)
     }
 }

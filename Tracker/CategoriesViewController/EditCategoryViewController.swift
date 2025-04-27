@@ -25,6 +25,7 @@ extension EditCategoryViewController {
     struct ViewModel {
         var categoryStore: TrackerCategoryStore
         var indexPath: IndexPath?
+        var action: (IndexPath) -> Void
     }
 }
 
@@ -50,8 +51,11 @@ extension EditCategoryViewController {
                 category,
                 at: indexPath
             )
+            viewModel.action(indexPath)
         } else {
-            try? viewModel.categoryStore.addCategory(category)
+            if let indexPath = try? viewModel.categoryStore.addCategory(category) {
+                viewModel.action(indexPath)
+            }
         }
         dismiss(animated: true)
     }
@@ -115,12 +119,10 @@ extension EditCategoryViewController {
                 constant: 24
             ),
             container.heightAnchor.constraint(equalToConstant: 75),
-
         ])
         
-        
         textField.attributedPlaceholder = NSAttributedString(
-            string: "Введите название трекера",
+            string: "Введите название категории",
             attributes: [
                 .foregroundColor: UIColor.App.gray
             ]
@@ -159,7 +161,9 @@ extension EditCategoryViewController {
 #Preview {
     UINavigationController(
         rootViewController: EditCategoryViewController(
-            viewModel: .init(categoryStore: TrackerCategoryStore())
+            viewModel: .init(
+                categoryStore: TrackerCategoryStore()
+            ) { print($0) }
         )
     )
 }

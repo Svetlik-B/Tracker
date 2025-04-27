@@ -3,9 +3,8 @@ import UIKit
 final class CategoriesViewController: UIViewController {
     private let viewModel: ViewModel
     private let placeholder = UIStackView()
+    private let button = UIButton(type: .system)
     private let tableView = UITableView(frame: .zero, style: .insetGrouped)
-
-    private var selectedCategory: TrackerCategory?
 
     init(viewModel: ViewModel) {
         self.viewModel = viewModel
@@ -27,7 +26,7 @@ final class CategoriesViewController: UIViewController {
 extension CategoriesViewController {
     struct ViewModel {
         var categoryStore: TrackerCategoryStore
-        var action: (TrackerCategory) -> Void
+        var action: (IndexPath) -> Void
     }
 }
 
@@ -55,16 +54,35 @@ extension CategoriesViewController: UITableViewDataSource {
             for: indexPath
         )
         let category = viewModel.categoryStore.category(at: indexPath)
+        cell.selectionStyle = .none
         cell.textLabel?.text = category.name
         cell.textLabel?.textColor = .App.black
         cell.backgroundColor = .App.background
         cell.separatorInset = .init(top: 0, left: 16, bottom: 0, right: 16)
+        cell.accessoryType = tableView.indexPathForSelectedRow == indexPath
+        ? .checkmark
+        : .none
         return cell
     }
 }
 
 // MARK: - UITableViewDelegate
 extension CategoriesViewController: UITableViewDelegate {
+    func tableView(_ tableView: UITableView, willSelectRowAt indexPath: IndexPath) -> IndexPath? {
+        guard tableView.indexPathForSelectedRow != indexPath
+        else {
+            tableView.deselectRow(at: indexPath, animated: true)
+            tableView.cellForRow(at: indexPath)?.accessoryType = .none
+            return nil
+        }
+        return indexPath
+    }
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
+    }
+    func tableView(_ tableView: UITableView, didDeselectRowAt indexPath: IndexPath) {
+        tableView.cellForRow(at: indexPath)?.accessoryType = .none
+    }
     func tableView(
         _ tableView: UITableView,
         contextMenuConfigurationForRowAt indexPath: IndexPath,
@@ -75,7 +93,7 @@ extension CategoriesViewController: UITableViewDelegate {
                 UIMenu(
                     children: [
                         UIAction(title: "Редактировать") { [weak self] _ in
-                            self?.editCategory(at: indexPath)
+                            self?.presentEditCategoriesViewController(at: indexPath)
                         },
                         UIAction(title: "Удалить") { [weak self] _ in
                             self?.deleteCategory(at: indexPath)
@@ -89,20 +107,20 @@ extension CategoriesViewController: UITableViewDelegate {
 
 // MARK: - Implementation
 extension CategoriesViewController {
-    fileprivate func editCategory(at indexPath: IndexPath) {
-        let viewController = EditCategoryViewController(
+    fileprivate func presentEditCategoriesViewController(at indexPath: IndexPath?) {
+        let editCategoryViewController = EditCategoryViewController(
             viewModel: .init(
                 categoryStore: viewModel.categoryStore,
                 indexPath: indexPath
-            )
+            ) { [weak self] indexPath in
+                self?.tableView.selectRow(
+                    at: indexPath,
+                    animated: true,
+                    scrollPosition: .top
+                )
+            }
         )
-        viewController.modalPresentationStyle = .pageSheet
-        present(viewController, animated: true)
-    }
-    fileprivate func createCategory() {
-        let viewController = EditCategoryViewController(
-            viewModel: .init(categoryStore: viewModel.categoryStore)
-        )
+        let viewController = UINavigationController(rootViewController: editCategoryViewController)
         viewController.modalPresentationStyle = .pageSheet
         present(viewController, animated: true)
 
@@ -111,7 +129,6 @@ extension CategoriesViewController {
         try? viewModel.categoryStore.deleteCategory(at: indexPath)
     }
     fileprivate func setupButton() {
-        let button = UIButton(type: .system)
         button.titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
         button.backgroundColor = .App.black
         button.layer.cornerRadius = 16
@@ -177,7 +194,7 @@ extension CategoriesViewController {
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            tableView.bottomAnchor.constraint(equalTo: button.topAnchor),
         ])
     }
 
@@ -186,12 +203,13 @@ extension CategoriesViewController {
         title = "Категория"
 
         setupPlaceholder()
-        setupTableView()
         setupButton()
+        setupTableView()
         updateUI()
     }
 
     fileprivate func updateUI() {
+        print(#function)
         let numberOfCategories = viewModel.categoryStore.numberOfCategories
         placeholder.isHidden = numberOfCategories != 0
         tableView.isHidden = numberOfCategories == 0
@@ -199,13 +217,13 @@ extension CategoriesViewController {
     }
 
     @objc fileprivate func onButtonTap() {
-        if let selectedCategory {
-            viewModel.action(selectedCategory)
+        if let indexPath = tableView.indexPathForSelectedRow {
+            viewModel.action(indexPath)
             dismiss(animated: true)
             return
         }
 
-        createCategory()
+        presentEditCategoriesViewController(at: nil)
     }
 }
 
