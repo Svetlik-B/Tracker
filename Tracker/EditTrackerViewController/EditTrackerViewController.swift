@@ -11,11 +11,10 @@ final class EditTrackerViewController: UIViewController {
     var needsSchedule = true
     var onCreatedTracker: (() -> Void)?
     var trackerCategoryStore = TrackerCategoryStore()
-    
+
     private var trackerName = "" { didSet { updateButtonState() } }
-    private lazy var category = try? trackerCategoryStore.getAllCategories().first {
-        didSet { updateButtonState() }
-    }
+    private let categoryStore = TrackerCategoryStore()
+    private var categoryIndexPath: IndexPath? { didSet { updateButtonState() } }
     private var schedule = Tracker.Schedule() { didSet { updateButtonState() } }
     private var selectedEmojiIndexPath: IndexPath? { didSet { updateButtonState() } }
     private var selectedColorIndexPath: IndexPath? { didSet { updateButtonState() } }
@@ -36,7 +35,8 @@ final class EditTrackerViewController: UIViewController {
 // MARK: - UITextFieldDelegate
 extension EditTrackerViewController: UITextFieldDelegate {
     func textField(
-        _ textField: UITextField, shouldChangeCharactersIn range: NSRange,
+        _ textField: UITextField,
+        shouldChangeCharactersIn range: NSRange,
         replacementString string: String
     ) -> Bool {
         let currentText = textField.text ?? ""
@@ -100,7 +100,9 @@ extension EditTrackerViewController: UICollectionViewDataSource {
                     for: indexPath
                 )
                 if let cell = cell as? TrackerCategoryCell {
-                    cell.categoryLabel.text = category?.name
+                    if let indexPath = categoryIndexPath {
+                        cell.categoryLabel.text = categoryStore.category(at: indexPath).name
+                    }
                     cell.contentView.layer.maskedCorners =
                         needsSchedule
                         ? [
@@ -289,7 +291,7 @@ extension EditTrackerViewController {
     fileprivate var isReady: Bool {
         trackerName != ""
             && (!needsSchedule || !schedule.isEmpty)
-            && category != nil
+            && categoryIndexPath != nil
             && selectedColorIndexPath != nil
             && selectedEmojiIndexPath != nil
     }
@@ -315,16 +317,18 @@ extension EditTrackerViewController {
     }
 
     fileprivate func selectCategories() {
-        //        let categoriesViewController = CategoriesViewController()
-        //        categoriesViewController.action = { [weak self] category in
-        //            self?.category = category
-        //            self?.collectionView.reloadData()
-        //        }
-        //        let viewC = UINavigationController(
-        //            rootViewController: categoriesViewController
-        //        )
-        //        viewC.modalPresentationStyle = .pageSheet
-        //        present(viewC, animated: true)
+        let categoriesViewController = CategoriesViewController(
+            viewModel: .init(
+                categoryStore: categoryStore,
+                action: { [weak self] in
+                    self?.categoryIndexPath = $0
+                    self?.collectionView.reloadData()
+                }
+            )
+        )
+        let viewController = UINavigationController(rootViewController: categoriesViewController)
+        viewController.modalPresentationStyle = .pageSheet
+        present(viewController, animated: true)
     }
 
     @objc fileprivate func cancel() {
@@ -412,7 +416,8 @@ extension EditTrackerViewController {
                     constant: 20
                 ),
                 cancelButton.trailingAnchor.constraint(
-                    equalTo: cancelButtonContainer.trailingAnchor),
+                    equalTo: cancelButtonContainer.trailingAnchor
+                ),
                 cancelButton.topAnchor.constraint(equalTo: cancelButtonContainer.topAnchor),
                 cancelButton.bottomAnchor.constraint(equalTo: cancelButtonContainer.bottomAnchor),
             ]
@@ -445,7 +450,7 @@ extension EditTrackerViewController {
     }
     @objc fileprivate func createButtonTapped() {
         guard
-            let category,
+            let categoryIndexPath,
             isReady
         else { return }
         let store = TrackerStore()
@@ -454,7 +459,8 @@ extension EditTrackerViewController {
             color: Tracker.colors[selectedColorIndexPath!.item],
             emoji: Tracker.emoji[selectedEmojiIndexPath!.item],
             schedule: schedule,
-            category: category
+            categoryStore: categoryStore,
+            categoryIndexPath: categoryIndexPath
         )
         dismiss(animated: true)
         onCreatedTracker?()

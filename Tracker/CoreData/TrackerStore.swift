@@ -23,20 +23,14 @@ extension TrackerStore {
         color: UIColor,
         emoji: String,
         schedule: Tracker.Schedule,
-        category: TrackerCategory
+        categoryStore: TrackerCategoryStore,
+        categoryIndexPath: IndexPath
     ) throws {
-        let fetchRequest = TrackerCategoryCoreData.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "name == %@", category.name)
-
-        guard let categoryCoreData = try context.fetch(fetchRequest).first else {
-            throw TrackerStoreError.categoryNotFound(category.name)
-        }
-
         let trackerCoreData = TrackerCoreData(context: context)
         trackerCoreData.color = UIColorTransformer.hexString(from: color)
         trackerCoreData.emoji = emoji
         trackerCoreData.name = name
-        trackerCoreData.category = categoryCoreData
+        trackerCoreData.category = categoryStore.categoryCoreData(at: categoryIndexPath)
         trackerCoreData.schedule = ScheduleTransformer.data(from: schedule)
         try context.save()
     }
@@ -124,8 +118,10 @@ extension TrackerDataSource {
         let fetchRequest: NSFetchRequest<TrackerCoreData> = NSFetchRequest(
             entityName: "TrackerCoreData"
         )
-        let sortDescriptor = NSSortDescriptor(key: "name", ascending: false)
-        fetchRequest.sortDescriptors = [sortDescriptor]
+        fetchRequest.sortDescriptors = [
+            NSSortDescriptor(key: "category.name", ascending: true),
+            NSSortDescriptor(key: "name", ascending: true),
+        ]
         let controller = NSFetchedResultsController<TrackerCoreData>(
             fetchRequest: fetchRequest,
             managedObjectContext: Store.persistentContainer.viewContext,
