@@ -1,5 +1,4 @@
 import CoreData
-import UIKit
 
 protocol TrackerCategoryStoreDelegate: AnyObject {
     func trackerCategoryStoreDidChange(_ store: TrackerCategoryStore)
@@ -17,8 +16,9 @@ final class TrackerCategoryStore: NSObject {
         self.context = context
 
         let fetchRequest = TrackerCategoryCoreData.fetchRequest()
-        let sortDescriptor = NSSortDescriptor(key: "name", ascending: true)
-        fetchRequest.sortDescriptors = [sortDescriptor]
+        fetchRequest.sortDescriptors = [
+            NSSortDescriptor(key: "name", ascending: true),
+        ]
         fetchController = NSFetchedResultsController<TrackerCategoryCoreData>(
             fetchRequest: fetchRequest,
             managedObjectContext: context,

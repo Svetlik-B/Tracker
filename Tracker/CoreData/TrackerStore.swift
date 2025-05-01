@@ -118,8 +118,10 @@ extension TrackerDataSource {
         let fetchRequest: NSFetchRequest<TrackerCoreData> = NSFetchRequest(
             entityName: "TrackerCoreData"
         )
-        let sortDescriptor = NSSortDescriptor(key: "name", ascending: false)
-        fetchRequest.sortDescriptors = [sortDescriptor]
+        fetchRequest.sortDescriptors = [
+            NSSortDescriptor(key: "category.name", ascending: true),
+            NSSortDescriptor(key: "name", ascending: true),
+        ]
         let controller = NSFetchedResultsController<TrackerCoreData>(
             fetchRequest: fetchRequest,
             managedObjectContext: Store.persistentContainer.viewContext,
