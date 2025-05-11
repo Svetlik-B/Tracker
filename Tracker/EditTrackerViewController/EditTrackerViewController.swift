@@ -463,7 +463,7 @@ extension EditTrackerViewController {
             let categoryIndexPath,
             isReady
         else { return }
-        let store = TrackerStore()
+        let store = trackerStore
         try? store.addNewTracker(
             name: trackerName,
             color: Tracker.colors[selectedColorIndexPath!.item],

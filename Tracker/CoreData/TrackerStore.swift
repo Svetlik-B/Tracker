@@ -9,6 +9,14 @@ protocol TrackerStoreProtocol: NSObject {
     func sectionName(for section: Int) -> String?
     func tracker(at indexPath: IndexPath) -> Tracker
     func deleteTracker(at indexPath: IndexPath) throws
+    func addNewTracker(
+        name: String,
+        color: UIColor,
+        emoji: String,
+        schedule: Tracker.Schedule,
+        categoryStore: TrackerCategoryStore,
+        categoryIndexPath: IndexPath
+    ) throws
 }
 
 final class TrackerStore: NSObject {
