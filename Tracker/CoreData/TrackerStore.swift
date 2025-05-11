@@ -8,6 +8,7 @@ protocol TrackerStoreProtocol: NSObject {
     func numberOfItems(in section: Int) -> Int
     func sectionName(for section: Int) -> String?
     func tracker(at indexPath: IndexPath) -> Tracker
+    func deleteTracker(at indexPath: IndexPath) throws
 }
 
 final class TrackerStore: NSObject {
@@ -103,6 +104,11 @@ extension TrackerStore: TrackerStoreProtocol {
                 try context?.save()
             }
         )
+    }
+    func deleteTracker(at indexPath: IndexPath) throws {
+        let trackerToDelete = fetchedResultsController.object(at: indexPath)
+        context.delete(trackerToDelete)
+        try context.save()
     }
 }
 

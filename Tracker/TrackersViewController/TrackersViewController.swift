@@ -65,7 +65,9 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
         contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
         point: CGPoint
     ) -> UIContextMenuConfiguration? {
-        UIContextMenuConfiguration(
+        guard indexPaths.isEmpty == false
+        else { return nil }
+        return UIContextMenuConfiguration(
             actionProvider: { action in
                 UIMenu(
                     children: [
@@ -78,8 +80,10 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
                         UIAction(
                             title: "Удалить",
                             attributes: .destructive
-                        ) { action in
-                            print(action)
+                        ) { [weak self] _  in
+                            for indexPath in indexPaths {
+                                try? self?.trackerDataSource.deleteTracker(at: indexPath)
+                            }
                         },
                     ]
                 )
