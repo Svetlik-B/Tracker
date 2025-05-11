@@ -6,14 +6,20 @@ private enum Constant {
 }
 
 final class TrackersViewController: UIViewController {
-    lazy var trackerDataSource: TrackerDataSource = {
-        let trackerDataSource = TrackerDataSource()
+    var trackerDataSource: TrackerDataSource
+    
+    init(trackerDataSource: TrackerDataSource) {
+        self.trackerDataSource = trackerDataSource
+        super.init(nibName: nil, bundle: nil)
         trackerDataSource.onDidChangeContent = { [weak self] in
             self?.updatedView()
         }
-        return trackerDataSource
-    }()
-
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     private let datePicker = UIDatePicker()
     private let searchBar = UISearchBar()
     private let imageContainerView = UIView()
@@ -288,5 +294,9 @@ extension TrackersViewController {
 }
 
 #Preview {
-    UINavigationController(rootViewController: TrackersViewController())
+    UINavigationController(
+        rootViewController: TrackersViewController(
+            trackerDataSource: TrackerDataSource()
+        )
+    )
 }
