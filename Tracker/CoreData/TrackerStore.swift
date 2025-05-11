@@ -54,9 +54,8 @@ extension TrackerCoreData {
 
 final class TrackerDataSource: NSObject {
     let fetchedResultsController = TrackerDataSource.createFetchedResultsController()
-    let onDidChangeContent: () -> Void
-    init(onDidChangeContent: @escaping () -> Void) {
-        self.onDidChangeContent = onDidChangeContent
+    var onDidChangeContent: () -> Void = {}
+    override init() {
         super.init()
         fetchedResultsController.delegate = self
     }

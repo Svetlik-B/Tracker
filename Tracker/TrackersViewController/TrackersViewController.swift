@@ -6,9 +6,13 @@ private enum Constant {
 }
 
 final class TrackersViewController: UIViewController {
-    lazy var trackerDataSource = TrackerDataSource { [weak self] in
-        self?.updatedView()
-    }
+    lazy var trackerDataSource: TrackerDataSource = {
+        let trackerDataSource = TrackerDataSource()
+        trackerDataSource.onDidChangeContent = { [weak self] in
+            self?.updatedView()
+        }
+        return trackerDataSource
+    }()
 
     private let datePicker = UIDatePicker()
     private let searchBar = UISearchBar()
