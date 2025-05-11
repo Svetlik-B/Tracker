@@ -6,12 +6,12 @@ private enum Constant {
 }
 
 final class TrackersViewController: UIViewController {
-    var trackerDataSource: TrackerStoreProtocol
+    var trackerStore: TrackerStoreProtocol
     
-    init(trackerDataSource: TrackerStoreProtocol) {
-        self.trackerDataSource = trackerDataSource
+    init(trackerStore: TrackerStoreProtocol) {
+        self.trackerStore = trackerStore
         super.init(nibName: nil, bundle: nil)
-        trackerDataSource.onDidChangeContent = { [weak self] in
+        trackerStore.onDidChangeContent = { [weak self] in
             self?.updatedView()
         }
     }
@@ -56,7 +56,7 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
         layout collectionViewLayout: UICollectionViewLayout,
         referenceSizeForHeaderInSection section: Int
     ) -> CGSize {
-        guard trackerDataSource.sectionName(for: section) != nil
+        guard trackerStore.sectionName(for: section) != nil
         else { return .zero }
         return .init(width: 0, height: section == 0 ? 54 : 46)
     }
@@ -82,7 +82,7 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
                             attributes: .destructive
                         ) { [weak self] _  in
                             for indexPath in indexPaths {
-                                try? self?.trackerDataSource.deleteTracker(at: indexPath)
+                                try? self?.trackerStore.deleteTracker(at: indexPath)
                             }
                         },
                     ]
@@ -95,13 +95,13 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
 // MARK: - UICollectionViewDataSource
 extension TrackersViewController: UICollectionViewDataSource {
     func numberOfSections(in collectionView: UICollectionView) -> Int {
-        trackerDataSource.numberOfSections
+        trackerStore.numberOfSections
     }
     func collectionView(
         _ collectionView: UICollectionView,
         numberOfItemsInSection section: Int
     ) -> Int {
-        trackerDataSource.numberOfItems(in: section)
+        trackerStore.numberOfItems(in: section)
     }
 
     func collectionView(
@@ -112,7 +112,7 @@ extension TrackersViewController: UICollectionViewDataSource {
             withReuseIdentifier: TrackerCell.reuseIdentifier,
             for: indexPath
         )
-        let tracker = trackerDataSource.tracker(at: indexPath)
+        let tracker = trackerStore.tracker(at: indexPath)
         if let cell = cell as? TrackerCell {
             cell.configure(
                 model: .init(
@@ -148,7 +148,7 @@ extension TrackersViewController: UICollectionViewDataSource {
             for: indexPath
         )
         if let header = header as? TrackerHeader {
-            header.label.text = trackerDataSource.sectionName(for: indexPath.section)
+            header.label.text = trackerStore.sectionName(for: indexPath.section)
         }
         return header
     }
@@ -157,7 +157,7 @@ extension TrackersViewController: UICollectionViewDataSource {
 // MARK: - Implementation
 extension TrackersViewController {
     @objc fileprivate func createTracker() {
-        let trackerTypeSelectionViewController = TrackerTypeSelectionViewController()
+        let trackerTypeSelectionViewController = TrackerTypeSelectionViewController(trackerStore: trackerStore)
         let vc = UINavigationController(rootViewController: trackerTypeSelectionViewController)
         vc.modalPresentationStyle = .pageSheet
         present(vc, animated: true)
@@ -274,7 +274,7 @@ extension TrackersViewController {
         updatedView()
     }
     fileprivate func updatedView() {
-        let haveTrackers = trackerDataSource.haveTrackers
+        let haveTrackers = trackerStore.haveTrackers
         collectionView.isHidden = !haveTrackers
         filterButton.isHidden = !haveTrackers
         imageContainerView.isHidden = haveTrackers
@@ -300,7 +300,7 @@ extension TrackersViewController {
 #Preview {
     UINavigationController(
         rootViewController: TrackersViewController(
-            trackerDataSource: TrackerStore()
+            trackerStore: TrackerStore()
         )
     )
 }

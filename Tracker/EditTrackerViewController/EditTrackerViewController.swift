@@ -8,6 +8,16 @@ final class EditTrackerViewController: UIViewController {
         case color
     }
 
+    init(trackerStore: TrackerStoreProtocol) {
+        self.trackerStore = trackerStore
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    let trackerStore: TrackerStoreProtocol
     var needsSchedule = true
     var onCreatedTracker: (() -> Void)?
     var trackerCategoryStore = TrackerCategoryStore()
@@ -468,11 +478,15 @@ extension EditTrackerViewController {
 }
 
 #Preview("С расписанием") {
-    UINavigationController(rootViewController: EditTrackerViewController())
+    UINavigationController(
+        rootViewController: EditTrackerViewController(
+            trackerStore: TrackerStore()
+        )
+    )
 }
 
 #Preview("Без расписания") {
-    let vc = EditTrackerViewController()
+    let vc = EditTrackerViewController(trackerStore: TrackerStore())
     vc.needsSchedule = false
     return UINavigationController(
         rootViewController: vc
