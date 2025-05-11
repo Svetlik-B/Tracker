@@ -95,7 +95,7 @@ extension CategoriesViewController: UITableViewDelegate {
                         UIAction(title: "Редактировать") { [weak self] _ in
                             self?.presentEditCategoriesViewController(at: indexPath)
                         },
-                        UIAction(title: "Удалить") { [weak self] _ in
+                        UIAction(title: "Удалить", attributes: .destructive) { [weak self] _ in
                             self?.deleteCategory(at: indexPath)
                         },
                     ]

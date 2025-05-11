@@ -50,6 +50,32 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
         else { return .zero }
         return .init(width: 0, height: section == 0 ? 54 : 46)
     }
+    func collectionView(
+        _ collectionView: UICollectionView,
+        contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
+        point: CGPoint
+    ) -> UIContextMenuConfiguration? {
+        UIContextMenuConfiguration(
+            actionProvider: { action in
+                UIMenu(
+                    children: [
+                        UIAction(title: "Закрепить") { action in
+                            print(action)
+                        },
+                        UIAction(title: "Редактировать") { action in
+                            print(action)
+                        },
+                        UIAction(
+                            title: "Удалить",
+                            attributes: .destructive
+                        ) { action in
+                            print(action)
+                        },
+                    ]
+                )
+            }
+        )
+    }
 }
 
 // MARK: - UICollectionViewDataSource

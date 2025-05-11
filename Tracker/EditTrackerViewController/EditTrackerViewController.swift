@@ -467,6 +467,14 @@ extension EditTrackerViewController {
     }
 }
 
-#Preview {
+#Preview("С расписанием") {
     UINavigationController(rootViewController: EditTrackerViewController())
+}
+
+#Preview("Без расписания") {
+    let vc = EditTrackerViewController()
+    vc.needsSchedule = false
+    return UINavigationController(
+        rootViewController: vc
+    )
 }
