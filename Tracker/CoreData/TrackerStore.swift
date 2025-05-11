@@ -1,15 +1,46 @@
 import CoreData
 import UIKit
 
-final class TrackerStore {
-    private let context: NSManagedObjectContext
+protocol TrackerDataSource: NSObject {
+    var onDidChangeContent: () -> Void { get set }
+    var numberOfSections: Int { get }
+    var haveTrackers: Bool { get }
+    func numberOfItems(in section: Int) -> Int
+    func sectionName(for section: Int) -> String?
+    func tracker(at indexPath: IndexPath) -> Tracker
+}
 
-    convenience init() {
+final class TrackerStore: NSObject {
+    private let context: NSManagedObjectContext
+    var onDidChangeContent: () -> Void = {}
+    let fetchedResultsController: NSFetchedResultsController<TrackerCoreData>
+
+    override convenience init() {
         self.init(context: Store.persistentContainer.viewContext)
     }
 
     init(context: NSManagedObjectContext) {
         self.context = context
+
+        let fetchRequest: NSFetchRequest<TrackerCoreData> = NSFetchRequest(
+            entityName: "TrackerCoreData"
+        )
+        fetchRequest.sortDescriptors = [
+            NSSortDescriptor(key: "category.name", ascending: true),
+            NSSortDescriptor(key: "name", ascending: true),
+        ]
+        let controller = NSFetchedResultsController<TrackerCoreData>(
+            fetchRequest: fetchRequest,
+            managedObjectContext: context,
+            sectionNameKeyPath: "category.name",
+            cacheName: "AllTrackers"
+        )
+        try? controller.performFetch()
+        self.fetchedResultsController = controller
+
+        super.init()
+
+        controller.delegate = self
     }
 }
 
@@ -36,48 +67,16 @@ extension TrackerStore {
     }
 }
 
-extension TrackerCoreData {
-    func findTrackerRecord(for date: Date) -> TrackerRecordCoreData? {
-        guard let records = records as? Set<TrackerRecordCoreData>
-        else { return nil }
-        let dateStartOfDay = Calendar.current.startOfDay(for: date)
-        for record in records {
-            guard let date = record.date else { continue }
-            let recordStartOfDay = Calendar.current.startOfDay(for: date)
-            if dateStartOfDay == recordStartOfDay {
-                return record
-            }
-        }
-        return nil
-    }
-}
-
-final class TrackerDataSource: NSObject {
-    let fetchedResultsController = TrackerDataSource.createFetchedResultsController()
-    var onDidChangeContent: () -> Void = {}
-    override init() {
-        super.init()
-        fetchedResultsController.delegate = self
-    }
-}
-
-extension TrackerDataSource: NSFetchedResultsControllerDelegate {
-    func controllerDidChangeContent(
-        _ controller: NSFetchedResultsController<any NSFetchRequestResult>
-    ) {
-        onDidChangeContent()
-    }
-}
-
-extension TrackerDataSource {
-    func sectionName(for section: Int) -> String? {
-        let sectionInfo = fetchedResultsController.sections?[section]
-        return sectionInfo?.name
-    }
+extension TrackerStore: TrackerDataSource {
     var numberOfSections: Int { fetchedResultsController.sections?.count ?? 0 }
+    var haveTrackers: Bool { (fetchedResultsController.sections?.count ?? 0) > 0 }
     func numberOfItems(in section: Int) -> Int {
         let sectionInfo = fetchedResultsController.sections?[section]
         return sectionInfo?.numberOfObjects ?? 0
+    }
+    func sectionName(for section: Int) -> String? {
+        let sectionInfo = fetchedResultsController.sections?[section]
+        return sectionInfo?.name
     }
     func tracker(at indexPath: IndexPath) -> Tracker {
         let trackerCoreData = fetchedResultsController.object(at: indexPath)
@@ -105,29 +104,28 @@ extension TrackerDataSource {
             }
         )
     }
-    var haveTrackers: Bool {
-        (fetchedResultsController.sections?.count ?? 0) > 0
+}
+
+extension TrackerStore: NSFetchedResultsControllerDelegate {
+    func controllerDidChangeContent(
+        _ controller: NSFetchedResultsController<any NSFetchRequestResult>
+    ) {
+        onDidChangeContent()
     }
 }
 
-extension TrackerDataSource {
-    fileprivate static func createFetchedResultsController() -> NSFetchedResultsController<
-        TrackerCoreData
-    > {
-        let fetchRequest: NSFetchRequest<TrackerCoreData> = NSFetchRequest(
-            entityName: "TrackerCoreData"
-        )
-        fetchRequest.sortDescriptors = [
-            NSSortDescriptor(key: "category.name", ascending: true),
-            NSSortDescriptor(key: "name", ascending: true),
-        ]
-        let controller = NSFetchedResultsController<TrackerCoreData>(
-            fetchRequest: fetchRequest,
-            managedObjectContext: Store.persistentContainer.viewContext,
-            sectionNameKeyPath: "category.name",
-            cacheName: "AllTrackers"
-        )
-        try? controller.performFetch()
-        return controller
+extension TrackerCoreData {
+    func findTrackerRecord(for date: Date) -> TrackerRecordCoreData? {
+        guard let records = records as? Set<TrackerRecordCoreData>
+        else { return nil }
+        let dateStartOfDay = Calendar.current.startOfDay(for: date)
+        for record in records {
+            guard let date = record.date else { continue }
+            let recordStartOfDay = Calendar.current.startOfDay(for: date)
+            if dateStartOfDay == recordStartOfDay {
+                return record
+            }
+        }
+        return nil
     }
 }

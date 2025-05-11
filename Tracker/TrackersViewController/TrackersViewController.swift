@@ -296,7 +296,7 @@ extension TrackersViewController {
 #Preview {
     UINavigationController(
         rootViewController: TrackersViewController(
-            trackerDataSource: TrackerDataSource()
+            trackerDataSource: TrackerStore()
         )
     )
 }
