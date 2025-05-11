@@ -6,9 +6,9 @@ private enum Constant {
 }
 
 final class TrackersViewController: UIViewController {
-    var trackerDataSource: TrackerDataSource
+    var trackerDataSource: TrackerStoreProtocol
     
-    init(trackerDataSource: TrackerDataSource) {
+    init(trackerDataSource: TrackerStoreProtocol) {
         self.trackerDataSource = trackerDataSource
         super.init(nibName: nil, bundle: nil)
         trackerDataSource.onDidChangeContent = { [weak self] in

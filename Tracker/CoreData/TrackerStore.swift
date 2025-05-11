@@ -1,7 +1,7 @@
 import CoreData
 import UIKit
 
-protocol TrackerDataSource: NSObject {
+protocol TrackerStoreProtocol: NSObject {
     var onDidChangeContent: () -> Void { get set }
     var numberOfSections: Int { get }
     var haveTrackers: Bool { get }
@@ -67,7 +67,7 @@ extension TrackerStore {
     }
 }
 
-extension TrackerStore: TrackerDataSource {
+extension TrackerStore: TrackerStoreProtocol {
     var numberOfSections: Int { fetchedResultsController.sections?.count ?? 0 }
     var haveTrackers: Bool { (fetchedResultsController.sections?.count ?? 0) > 0 }
     func numberOfItems(in section: Int) -> Int {
