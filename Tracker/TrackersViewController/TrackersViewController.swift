@@ -7,7 +7,7 @@ private enum Constant {
 
 final class TrackersViewController: UIViewController {
     var trackerStore: TrackerStoreProtocol
-    
+
     init(trackerStore: TrackerStoreProtocol) {
         self.trackerStore = trackerStore
         super.init(nibName: nil, bundle: nil)
@@ -15,11 +15,11 @@ final class TrackersViewController: UIViewController {
             self?.updatedView()
         }
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     private let datePicker = UIDatePicker()
     private let searchBar = UISearchBar()
     private let imageContainerView = UIView()
@@ -74,13 +74,23 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
                         UIAction(title: "Закрепить") { action in
                             print(action)
                         },
-                        UIAction(title: "Редактировать") { action in
-                            print(action)
+                        UIAction(title: "Редактировать") { [weak self] _ in
+                            guard let self = self
+                            else { return }
+                            let vc = EditTrackerViewController(
+                                trackerStore: self.trackerStore,
+                                indexPath: indexPaths.first
+                            )
+                            let navigationController = UINavigationController(
+                                rootViewController: vc
+                            )
+                            vc.modalPresentationStyle = .fullScreen
+                            self.present(navigationController, animated: true)
                         },
                         UIAction(
                             title: "Удалить",
                             attributes: .destructive
-                        ) { [weak self] _  in
+                        ) { [weak self] _ in
                             for indexPath in indexPaths {
                                 try? self?.trackerStore.deleteTracker(at: indexPath)
                             }
@@ -157,7 +167,9 @@ extension TrackersViewController: UICollectionViewDataSource {
 // MARK: - Implementation
 extension TrackersViewController {
     @objc fileprivate func createTracker() {
-        let trackerTypeSelectionViewController = TrackerTypeSelectionViewController(trackerStore: trackerStore)
+        let trackerTypeSelectionViewController = TrackerTypeSelectionViewController(
+            trackerStore: trackerStore
+        )
         let vc = UINavigationController(rootViewController: trackerTypeSelectionViewController)
         vc.modalPresentationStyle = .pageSheet
         present(vc, animated: true)

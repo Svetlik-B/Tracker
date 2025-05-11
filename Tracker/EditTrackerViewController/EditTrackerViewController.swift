@@ -8,9 +8,32 @@ final class EditTrackerViewController: UIViewController {
         case color
     }
 
-    init(trackerStore: TrackerStoreProtocol) {
+    init(trackerStore: TrackerStoreProtocol, indexPath: IndexPath? = nil) {
         self.trackerStore = trackerStore
+        self.indexPath = indexPath
         super.init(nibName: nil, bundle: nil)
+        
+        if let indexPath {
+            let tracker = trackerStore.tracker(at: indexPath)
+            trackerName = tracker.name
+            schedule = tracker.schedule
+            needsSchedule = !tracker.schedule.isEmpty
+            if let index = Tracker.emoji.firstIndex(of: tracker.emoji) {
+                selectedEmojiIndexPath = .init(
+                    row: index,
+                    section: Section.emoji.rawValue
+                )
+            }
+            let hexColor = UIColorTransformer.hexString(from: tracker.color)
+            if let index = Tracker.colors
+                .map(UIColorTransformer.hexString(from:))
+                .firstIndex(of: hexColor) {
+                selectedColorIndexPath = .init(
+                    row: index,
+                    section: Section.color.rawValue
+                )
+            }
+        }
     }
 
     required init?(coder: NSCoder) {
@@ -18,9 +41,9 @@ final class EditTrackerViewController: UIViewController {
     }
     
     let trackerStore: TrackerStoreProtocol
+    let indexPath: IndexPath?
     var needsSchedule = true
     var onCreatedTracker: (() -> Void)?
-    var trackerCategoryStore = TrackerCategoryStore()
 
     private var trackerName = "" { didSet { updateButtonState() } }
     private let categoryStore = TrackerCategoryStore()
@@ -101,6 +124,7 @@ extension EditTrackerViewController: UICollectionViewDataSource {
                 for: indexPath
             )
             if let cell = cell as? TrackerNameInputCell {
+                cell.textField.text = trackerName
                 cell.textField.delegate = self
             }
         case .details:
@@ -477,10 +501,19 @@ extension EditTrackerViewController {
     }
 }
 
-#Preview("С расписанием") {
+#Preview("Новый с расписанием") {
     UINavigationController(
         rootViewController: EditTrackerViewController(
             trackerStore: TrackerStore()
+        )
+    )
+}
+
+#Preview("Редактировать с расписанием") {
+    UINavigationController(
+        rootViewController: EditTrackerViewController(
+            trackerStore: TrackerStore(),
+            indexPath: .init(row: 0, section: 0)
         )
     )
 }
