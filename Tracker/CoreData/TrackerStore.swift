@@ -10,6 +10,14 @@ protocol TrackerStoreProtocol: NSObject {
     func sectionName(for section: Int) -> String?
     func tracker(at indexPath: IndexPath) -> Tracker
     func deleteTracker(at indexPath: IndexPath) throws
+    func editTracker(
+        at indexPath: IndexPath,
+        name: String,
+        color: UIColor,
+        emoji: String,
+        schedule: Tracker.Schedule,
+        categoryIndexPath: IndexPath
+    ) throws
     func addNewTracker(
         name: String,
         color: UIColor,
@@ -57,22 +65,6 @@ final class TrackerStore: NSObject {
 extension TrackerStore {
     enum TrackerStoreError: Error {
         case categoryNotFound(String)
-    }
-    func addNewTracker(
-        name: String,
-        color: UIColor,
-        emoji: String,
-        schedule: Tracker.Schedule,
-        categoryIndexPath: IndexPath
-    ) throws {
-        let trackerCoreData = TrackerCoreData(context: context)
-        trackerCoreData.color = UIColorTransformer.hexString(from: color)
-        trackerCoreData.emoji = emoji
-        trackerCoreData.name = name
-        let categoryStore = TrackerCategoryStore(context: context)
-        trackerCoreData.category = categoryStore.categoryCoreData(at: categoryIndexPath)
-        trackerCoreData.schedule = ScheduleTransformer.data(from: schedule)
-        try context.save()
     }
 }
 
@@ -130,6 +122,40 @@ extension TrackerStore: TrackerStoreProtocol {
         context.delete(trackerToDelete)
         try context.save()
     }
+    func addNewTracker(
+        name: String,
+        color: UIColor,
+        emoji: String,
+        schedule: Tracker.Schedule,
+        categoryIndexPath: IndexPath
+    ) throws {
+        let trackerCoreData = TrackerCoreData(context: context)
+        trackerCoreData.color = UIColorTransformer.hexString(from: color)
+        trackerCoreData.emoji = emoji
+        trackerCoreData.name = name
+        let categoryStore = TrackerCategoryStore(context: context)
+        trackerCoreData.category = categoryStore.categoryCoreData(at: categoryIndexPath)
+        trackerCoreData.schedule = ScheduleTransformer.data(from: schedule)
+        try context.save()
+    }
+    func editTracker(
+        at indexPath: IndexPath,
+        name: String,
+        color: UIColor,
+        emoji: String,
+        schedule: Tracker.Schedule,
+        categoryIndexPath: IndexPath
+    ) throws {
+        let trackerCoreData = fetchedResultsController.object(at: indexPath)
+        trackerCoreData.color = UIColorTransformer.hexString(from: color)
+        trackerCoreData.emoji = emoji
+        trackerCoreData.name = name
+        let categoryStore = TrackerCategoryStore(context: context)
+        trackerCoreData.category = categoryStore.categoryCoreData(at: categoryIndexPath)
+        trackerCoreData.schedule = ScheduleTransformer.data(from: schedule)
+        try context.save()
+    }
+
 }
 
 extension TrackerStore: NSFetchedResultsControllerDelegate {

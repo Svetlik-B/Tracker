@@ -2,6 +2,7 @@ import UIKit
 
 final class EditTrackerViewController: UIViewController {
     enum Section: Int, CaseIterable {
+        case count
         case nameInput
         case details
         case emoji
@@ -15,7 +16,9 @@ final class EditTrackerViewController: UIViewController {
         
         if let indexPath {
             let tracker = trackerStore.tracker(at: indexPath)
+            self.tracker = tracker
             trackerName = tracker.name
+            categoryIndexPath = tracker.categoryIndexPath
             schedule = tracker.schedule
             needsSchedule = !tracker.schedule.isEmpty
             if let index = Tracker.emoji.firstIndex(of: tracker.emoji) {
@@ -45,6 +48,8 @@ final class EditTrackerViewController: UIViewController {
     var needsSchedule = true
     var onCreatedTracker: (() -> Void)?
 
+    private var tracker: Tracker? = nil
+    private var isEditingTracker: Bool { indexPath != nil }
     private var trackerName = "" { didSet { updateButtonState() } }
     private var categoryStore: TrackerCategoryStoreProtocol { trackerStore.categoryStore
     }
@@ -102,6 +107,7 @@ extension EditTrackerViewController: UICollectionViewDataSource {
         else { return 0 }
 
         return switch section {
+        case .count: isEditingTracker ? 1 : 0
         case .nameInput: 1
         case .details: needsSchedule ? 2 : 1
         case .emoji: Tracker.emoji.count
@@ -119,6 +125,14 @@ extension EditTrackerViewController: UICollectionViewDataSource {
         let cell: UICollectionViewCell
 
         switch section {
+        case .count:
+            cell = collectionView.dequeueReusableCell(
+                withReuseIdentifier: TrackerCountCell.reuseIdentifier,
+                for: indexPath
+            )
+            if let cell = cell as? TrackerCountCell {
+                cell.label.text = tracker?.count().days
+            }
         case .nameInput:
             cell = collectionView.dequeueReusableCell(
                 withReuseIdentifier: TrackerNameInputCell.reuseIdentifier,
@@ -213,7 +227,7 @@ extension EditTrackerViewController: UICollectionViewDataSource {
         else { return view }
 
         switch section {
-        case .nameInput, .details: break
+        case .nameInput, .details, .count: break
         case .emoji: sectionHeaderView.label.text = "Emoji"
         case .color: sectionHeaderView.label.text = "Цвет"
         }
@@ -233,6 +247,13 @@ extension EditTrackerViewController: UICollectionViewDelegateFlowLayout {
         else { return .zero }
 
         return switch section {
+        case .count:
+                .init(
+                    top: isEditingTracker ? 24 : 0,
+                    left: Constant.baseMagrin,
+                    bottom: isEditingTracker ? 16 : 0,
+                    right: Constant.baseMagrin
+                )
         case .nameInput:
             .init(
                 top: 24,
@@ -262,6 +283,11 @@ extension EditTrackerViewController: UICollectionViewDelegateFlowLayout {
         let length = (collectionView.bounds.width - 18 - 19) / 6
 
         return switch section {
+        case .count:
+                .init(
+                    width: collectionView.bounds.width,
+                    height: 38
+                )
         case .nameInput, .details:
             .init(
                 width: collectionView.bounds.width - Constant.baseMagrin * 2,
@@ -280,7 +306,7 @@ extension EditTrackerViewController: UICollectionViewDelegateFlowLayout {
         else { return .zero }
 
         return switch section {
-        case .nameInput, .details: .zero
+        case .nameInput, .details, .count: .zero
         case .emoji, .color: .init(width: 0, height: 18)
         }
     }
@@ -292,7 +318,7 @@ extension EditTrackerViewController: UICollectionViewDelegateFlowLayout {
         else { return }
 
         switch section {
-        case .nameInput:
+        case .nameInput, .count:
             break
         case .details:
             if indexPath.item == 1 {
@@ -370,10 +396,11 @@ extension EditTrackerViewController {
         dismiss(animated: true)
     }
     fileprivate func setupUI() {
-        title =
-            needsSchedule
-            ? "Новая привычка"
-            : "Новое нерегулярное событие"
+        title = switch (isEditingTracker, needsSchedule) {
+        case (true, _): "Создание привычки"
+        case (false, true): "Новая привычка"
+        case(false, false): "Новое нерегулярное событие"
+        }
         view.backgroundColor = .systemBackground
 
         let vStack = UIStackView()
@@ -394,6 +421,10 @@ extension EditTrackerViewController {
         collectionViewLayout.scrollDirection = .vertical
         collectionViewLayout.minimumLineSpacing = 0
         collectionViewLayout.minimumInteritemSpacing = 0
+        collectionView.register(
+            TrackerCountCell.self,
+            forCellWithReuseIdentifier: TrackerCountCell.reuseIdentifier
+        )
         collectionView.register(
             TrackerNameInputCell.self,
             forCellWithReuseIdentifier: TrackerNameInputCell.reuseIdentifier
@@ -488,14 +519,26 @@ extension EditTrackerViewController {
             let categoryIndexPath,
             isReady
         else { return }
-        let store = trackerStore
-        try? store.addNewTracker(
-            name: trackerName,
-            color: Tracker.colors[selectedColorIndexPath!.item],
-            emoji: Tracker.emoji[selectedEmojiIndexPath!.item],
-            schedule: schedule,
-            categoryIndexPath: categoryIndexPath
-        )
+
+        if let indexPath {
+            try? trackerStore.editTracker(
+                at: indexPath,
+                name: trackerName,
+                color: Tracker.colors[selectedColorIndexPath!.item],
+                emoji: Tracker.emoji[selectedEmojiIndexPath!.item],
+                schedule: schedule,
+                categoryIndexPath: categoryIndexPath
+            )
+
+        } else {
+            try? trackerStore.addNewTracker(
+                name: trackerName,
+                color: Tracker.colors[selectedColorIndexPath!.item],
+                emoji: Tracker.emoji[selectedEmojiIndexPath!.item],
+                schedule: schedule,
+                categoryIndexPath: categoryIndexPath
+            )
+        }
         dismiss(animated: true)
         onCreatedTracker?()
     }
@@ -509,7 +552,7 @@ extension EditTrackerViewController {
     )
 }
 
-#Preview("Редактировать с расписанием") {
+#Preview("Редактировать") {
     UINavigationController(
         rootViewController: EditTrackerViewController(
             trackerStore: TrackerStore(),
