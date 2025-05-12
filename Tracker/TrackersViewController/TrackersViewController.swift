@@ -75,25 +75,13 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
                             print(action)
                         },
                         UIAction(title: "Редактировать") { [weak self] _ in
-                            guard let self = self
-                            else { return }
-                            let vc = EditTrackerViewController(
-                                trackerStore: self.trackerStore,
-                                indexPath: indexPaths.first
-                            )
-                            let navigationController = UINavigationController(
-                                rootViewController: vc
-                            )
-                            vc.modalPresentationStyle = .fullScreen
-                            self.present(navigationController, animated: true)
+                            self?.editTracker(at: indexPaths.first)
                         },
                         UIAction(
                             title: "Удалить",
                             attributes: .destructive
                         ) { [weak self] _ in
-                            for indexPath in indexPaths {
-                                try? self?.trackerStore.deleteTracker(at: indexPath)
-                            }
+                            self?.deleteTrackers(at: indexPaths)
                         },
                     ]
                 )
@@ -166,6 +154,33 @@ extension TrackersViewController: UICollectionViewDataSource {
 
 // MARK: - Implementation
 extension TrackersViewController {
+    fileprivate func editTracker(at indexPath: IndexPath?) {
+        let vc = EditTrackerViewController(
+            trackerStore: trackerStore,
+            indexPath: indexPath
+        )
+        let navigationController = UINavigationController(
+            rootViewController: vc
+        )
+        vc.modalPresentationStyle = .fullScreen
+        self.present(navigationController, animated: true)
+    }
+    fileprivate func deleteTrackers(at indexPaths: [IndexPath]) {
+        let actionSheet = UIAlertController(
+            title: nil,
+            message: "Уверены что хотите удалить трекер?",
+            preferredStyle: .actionSheet
+        )
+        actionSheet.addAction(
+            .init(title: "Удалить", style: .destructive) { [weak self] _ in
+                for indexPath in indexPaths {
+                    try? self?.trackerStore.deleteTracker(at: indexPath)
+                }
+            }
+        )
+        actionSheet.addAction(.init(title: "Отменить", style: .cancel))
+        present(actionSheet, animated: true)
+    }
     @objc fileprivate func createTracker() {
         let trackerTypeSelectionViewController = TrackerTypeSelectionViewController(
             trackerStore: trackerStore
