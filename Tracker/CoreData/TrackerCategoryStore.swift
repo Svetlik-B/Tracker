@@ -16,7 +16,7 @@ protocol TrackerCategoryStoreDelegate: AnyObject {
 final class TrackerCategoryStore: NSObject, TrackerCategoryStoreProtocol {
     weak var delegate: TrackerCategoryStoreDelegate?
     private let context: NSManagedObjectContext
-    private let fetchController: NSFetchedResultsController<TrackerCategoryCoreData>
+    let fetchController: NSFetchedResultsController<TrackerCategoryCoreData>
     override convenience init() {
         self.init(context: Store.persistentContainer.viewContext)
     }

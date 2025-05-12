@@ -5,6 +5,7 @@ protocol TrackerStoreProtocol: NSObject {
     var onDidChangeContent: () -> Void { get set }
     var numberOfSections: Int { get }
     var haveTrackers: Bool { get }
+    var categoryStore: TrackerCategoryStoreProtocol { get }
     func numberOfItems(in section: Int) -> Int
     func sectionName(for section: Int) -> String?
     func tracker(at indexPath: IndexPath) -> Tracker
@@ -14,7 +15,6 @@ protocol TrackerStoreProtocol: NSObject {
         color: UIColor,
         emoji: String,
         schedule: Tracker.Schedule,
-        categoryStore: TrackerCategoryStore,
         categoryIndexPath: IndexPath
     ) throws
 }
@@ -63,13 +63,13 @@ extension TrackerStore {
         color: UIColor,
         emoji: String,
         schedule: Tracker.Schedule,
-        categoryStore: TrackerCategoryStore,
         categoryIndexPath: IndexPath
     ) throws {
         let trackerCoreData = TrackerCoreData(context: context)
         trackerCoreData.color = UIColorTransformer.hexString(from: color)
         trackerCoreData.emoji = emoji
         trackerCoreData.name = name
+        let categoryStore = TrackerCategoryStore(context: context)
         trackerCoreData.category = categoryStore.categoryCoreData(at: categoryIndexPath)
         trackerCoreData.schedule = ScheduleTransformer.data(from: schedule)
         try context.save()
@@ -79,6 +79,7 @@ extension TrackerStore {
 extension TrackerStore: TrackerStoreProtocol {
     var numberOfSections: Int { fetchedResultsController.sections?.count ?? 0 }
     var haveTrackers: Bool { (fetchedResultsController.sections?.count ?? 0) > 0 }
+    var categoryStore: TrackerCategoryStoreProtocol { TrackerCategoryStore(context: context) }
     func numberOfItems(in section: Int) -> Int {
         let sectionInfo = fetchedResultsController.sections?[section]
         return sectionInfo?.numberOfObjects ?? 0
@@ -89,6 +90,15 @@ extension TrackerStore: TrackerStoreProtocol {
     }
     func tracker(at indexPath: IndexPath) -> Tracker {
         let trackerCoreData = fetchedResultsController.object(at: indexPath)
+        let categoryCoredData = trackerCoreData.category
+        let categoryStore = TrackerCategoryStore(context: context)
+        var categoryIndexPath = IndexPath()
+        if let categoryCoredData,
+           let indexPath = categoryStore.fetchController.indexPath(forObject: categoryCoredData) {
+            categoryIndexPath = indexPath
+        } else {
+            fatalError("Не найдена категория")
+        }
         return Tracker(
             name: trackerCoreData.name ?? "",
             color: UIColorTransformer.color(from: trackerCoreData.color ?? ""),
@@ -110,7 +120,9 @@ extension TrackerStore: TrackerStoreProtocol {
                 let context = record.managedObjectContext
                 context?.delete(record)
                 try context?.save()
-            }
+            },
+            categoryStore: categoryStore,
+            categoryIndexPath: categoryIndexPath
         )
     }
     func deleteTracker(at indexPath: IndexPath) throws {

@@ -46,7 +46,8 @@ final class EditTrackerViewController: UIViewController {
     var onCreatedTracker: (() -> Void)?
 
     private var trackerName = "" { didSet { updateButtonState() } }
-    private let categoryStore = TrackerCategoryStore()
+    private var categoryStore: TrackerCategoryStoreProtocol { trackerStore.categoryStore
+    }
     private var categoryIndexPath: IndexPath? { didSet { updateButtonState() } }
     private var schedule = Tracker.Schedule() { didSet { updateButtonState() } }
     private var selectedEmojiIndexPath: IndexPath? { didSet { updateButtonState() } }
@@ -493,7 +494,6 @@ extension EditTrackerViewController {
             color: Tracker.colors[selectedColorIndexPath!.item],
             emoji: Tracker.emoji[selectedEmojiIndexPath!.item],
             schedule: schedule,
-            categoryStore: categoryStore,
             categoryIndexPath: categoryIndexPath
         )
         dismiss(animated: true)
