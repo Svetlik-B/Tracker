@@ -65,9 +65,25 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
         contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
         point: CGPoint
     ) -> UIContextMenuConfiguration? {
-        guard indexPaths.isEmpty == false
+        guard let indexPath = indexPaths.first
         else { return nil }
+        let tracker = trackerStore.tracker(at: indexPath)
         return UIContextMenuConfiguration(
+            previewProvider: {
+                let viewModel = TrackerPreviewController.ViewModel(
+                    size: .init(
+                        width: (collectionView.bounds.width - 2 * Constant.sectionInset
+                            - Constant.minimumInteritemSpacing) / 2,
+                        height: 90
+                    ),
+                    color: tracker.color,
+                    emoji: tracker.emoji,
+                    text: tracker.name
+                )
+                let vc = TrackerPreviewController()
+                vc.viewModel = viewModel
+                return vc
+            },
             actionProvider: { action in
                 UIMenu(
                     children: [
@@ -75,13 +91,13 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
                             print(action)
                         },
                         UIAction(title: "Редактировать") { [weak self] _ in
-                            self?.editTracker(at: indexPaths.first)
+                            self?.editTracker(at: indexPath)
                         },
                         UIAction(
                             title: "Удалить",
                             attributes: .destructive
                         ) { [weak self] _ in
-                            self?.deleteTrackers(at: indexPaths)
+                            self?.deleteTrackers(at: indexPath)
                         },
                     ]
                 )
@@ -154,7 +170,7 @@ extension TrackersViewController: UICollectionViewDataSource {
 
 // MARK: - Implementation
 extension TrackersViewController {
-    fileprivate func editTracker(at indexPath: IndexPath?) {
+    fileprivate func editTracker(at indexPath: IndexPath) {
         let vc = EditTrackerViewController(
             trackerStore: trackerStore,
             indexPath: indexPath
@@ -165,7 +181,7 @@ extension TrackersViewController {
         vc.modalPresentationStyle = .fullScreen
         self.present(navigationController, animated: true)
     }
-    fileprivate func deleteTrackers(at indexPaths: [IndexPath]) {
+    fileprivate func deleteTrackers(at indexPath: IndexPath) {
         let actionSheet = UIAlertController(
             title: nil,
             message: "Уверены что хотите удалить трекер?",
@@ -173,9 +189,7 @@ extension TrackersViewController {
         )
         actionSheet.addAction(
             .init(title: "Удалить", style: .destructive) { [weak self] _ in
-                for indexPath in indexPaths {
-                    try? self?.trackerStore.deleteTracker(at: indexPath)
-                }
+                try? self?.trackerStore.deleteTracker(at: indexPath)
             }
         )
         actionSheet.addAction(.init(title: "Отменить", style: .cancel))
