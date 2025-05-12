@@ -23,7 +23,7 @@ final class EditCategoryViewController: UIViewController {
 // MARK: - Interface
 extension EditCategoryViewController {
     struct ViewModel {
-        var categoryStore: TrackerCategoryStore
+        var categoryStore: TrackerCategoryStoreProtocol
         var indexPath: IndexPath?
         var action: (IndexPath) -> Void
     }

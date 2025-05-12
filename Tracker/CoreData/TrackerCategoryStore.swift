@@ -1,10 +1,19 @@
 import CoreData
 
-protocol TrackerCategoryStoreDelegate: AnyObject {
-    func trackerCategoryStoreDidChange(_ store: TrackerCategoryStore)
+protocol TrackerCategoryStoreProtocol: AnyObject {
+    var delegate: TrackerCategoryStoreDelegate? { get set }
+    var numberOfCategories: Int { get }
+    func category(at indexPath: IndexPath) -> TrackerCategory
+    func updateCategory(_ category: TrackerCategory, at indexPath: IndexPath) throws
+    func addCategory(_ category: TrackerCategory) throws -> IndexPath?
+    func deleteCategory(at indexPath: IndexPath) throws
 }
 
-final class TrackerCategoryStore: NSObject {
+protocol TrackerCategoryStoreDelegate: AnyObject {
+    func trackerCategoryStoreDidChange(_ store: TrackerCategoryStoreProtocol)
+}
+
+final class TrackerCategoryStore: NSObject, TrackerCategoryStoreProtocol {
     weak var delegate: TrackerCategoryStoreDelegate?
     private let context: NSManagedObjectContext
     private let fetchController: NSFetchedResultsController<TrackerCategoryCoreData>
@@ -17,7 +26,7 @@ final class TrackerCategoryStore: NSObject {
 
         let fetchRequest = TrackerCategoryCoreData.fetchRequest()
         fetchRequest.sortDescriptors = [
-            NSSortDescriptor(key: "name", ascending: true),
+            NSSortDescriptor(key: "name", ascending: true)
         ]
         fetchController = NSFetchedResultsController<TrackerCategoryCoreData>(
             fetchRequest: fetchRequest,
@@ -58,7 +67,7 @@ extension TrackerCategoryStore {
         let categoryToDelete = fetchController.object(at: indexPath)
         context.delete(categoryToDelete)
         try context.save()
-        
+
     }
     func updateCategory(
         _ category: TrackerCategory,

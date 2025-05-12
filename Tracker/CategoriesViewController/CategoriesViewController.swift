@@ -25,13 +25,13 @@ final class CategoriesViewController: UIViewController {
 // MARK: - Interface
 extension CategoriesViewController {
     struct ViewModel {
-        var categoryStore: TrackerCategoryStore
+        var categoryStore: TrackerCategoryStoreProtocol
         var action: (IndexPath) -> Void
     }
 }
 
 extension CategoriesViewController: TrackerCategoryStoreDelegate {
-    func trackerCategoryStoreDidChange(_ store: TrackerCategoryStore) {
+    func trackerCategoryStoreDidChange(_ store: TrackerCategoryStoreProtocol) {
         updateUI()
     }
 }
