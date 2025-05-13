@@ -299,6 +299,7 @@ extension TrackersViewController {
             imageStack.centerYAnchor.constraint(equalTo: imageContainerView.centerYAnchor),
         ])
 
+        filterButton.addTarget(self, action: #selector(selectFilter), for: .touchUpInside)
         filterButton.setTitle("Фильтры", for: .normal)
         filterButton.backgroundColor = .App.blue
         filterButton.tintColor = .white
@@ -321,6 +322,16 @@ extension TrackersViewController {
     }
     @objc fileprivate func datePickerEvent() {
         updatedView()
+    }
+    @objc fileprivate func selectFilter() {
+        let filterViewController = FilterViewController(
+            viewModel: .init(filter: .all) { filter in
+                print("filter: \(filter.rawValue)")
+            }
+        )
+        let navigationController = UINavigationController(rootViewController: filterViewController)
+        navigationController.modalPresentationStyle = .pageSheet
+        present(navigationController, animated: true)
     }
     fileprivate func updatedView() {
         let haveTrackers = trackerStore.haveTrackers
