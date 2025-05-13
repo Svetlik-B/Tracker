@@ -5,7 +5,7 @@ protocol TrackerCategoryStoreProtocol: AnyObject {
     var numberOfCategories: Int { get }
     func category(at indexPath: IndexPath) -> TrackerCategory
     func updateCategory(_ category: TrackerCategory, at indexPath: IndexPath) throws
-    func addCategory(_ category: TrackerCategory) throws -> IndexPath?
+    func findOrCreateCategory(_ category: TrackerCategory) throws -> IndexPath
     func deleteCategory(at indexPath: IndexPath) throws
 }
 
@@ -77,10 +77,28 @@ extension TrackerCategoryStore {
         coreDataCategory.name = category.name
         try context.save()
     }
-    func addCategory(_ category: TrackerCategory) throws -> IndexPath? {
+    func findOrCreateCategory(_ category: TrackerCategory) throws -> IndexPath {
+        guard let indexPath = findCategory(category)
+        else {
+            return try createCategory(category)
+        }
+        return indexPath
+    }
+    func findCategory(_ category: TrackerCategory) -> IndexPath? {
+        let request = TrackerCategoryCoreData.fetchRequest()
+        request.predicate = NSPredicate(format: "name == %@", category.name)
+        let categories = try? context.fetch(request)
+        guard let firstCategory = categories?.first else { return nil }
+        return fetchController.indexPath(forObject: firstCategory)
+        
+    }
+    func createCategory(_ category: TrackerCategory) throws -> IndexPath {
         let coreDataCategory = TrackerCategoryCoreData(context: context)
         coreDataCategory.name = category.name
         try context.save()
-        return fetchController.indexPath(forObject: coreDataCategory)
+        struct ImpossibleError: Error {}
+        guard let indexPath = fetchController.indexPath(forObject: coreDataCategory)
+        else { throw ImpossibleError() }
+        return indexPath
     }
 }

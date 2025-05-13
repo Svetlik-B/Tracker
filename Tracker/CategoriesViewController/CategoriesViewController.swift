@@ -113,6 +113,7 @@ extension CategoriesViewController {
                 categoryStore: viewModel.categoryStore,
                 indexPath: indexPath
             ) { [weak self] indexPath in
+                self?.tableView.reloadData()
                 self?.tableView.selectRow(
                     at: indexPath,
                     animated: true,
@@ -209,7 +210,6 @@ extension CategoriesViewController {
     }
 
     fileprivate func updateUI() {
-        print(#function)
         let numberOfCategories = viewModel.categoryStore.numberOfCategories
         placeholder.isHidden = numberOfCategories != 0
         tableView.isHidden = numberOfCategories == 0

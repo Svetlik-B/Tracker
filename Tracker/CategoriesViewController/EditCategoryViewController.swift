@@ -53,7 +53,7 @@ extension EditCategoryViewController {
             )
             viewModel.action(indexPath)
         } else {
-            if let indexPath = try? viewModel.categoryStore.addCategory(category) {
+            if let indexPath = try? viewModel.categoryStore.findOrCreateCategory(category) {
                 viewModel.action(indexPath)
             }
         }
