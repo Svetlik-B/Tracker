@@ -11,6 +11,7 @@ struct Tracker {
     var toggleCompleted: (Date) throws -> Void
     var categoryStore: TrackerCategoryStoreProtocol
     var categoryIndexPath: IndexPath
+    var isPinned: Bool
 }
 
 extension Tracker {

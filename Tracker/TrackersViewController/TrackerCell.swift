@@ -7,6 +7,7 @@ final class TrackerCell: UICollectionViewCell {
         var color: UIColor
         var count: Int
         var completed: Bool
+        var isPinned: Bool
         var action: () -> Void
     }
 
@@ -24,6 +25,7 @@ final class TrackerCell: UICollectionViewCell {
             for: .normal
         )
         button.layer.opacity = model.completed ? 0.3 : 1
+        pin.isHidden = !model.isPinned
     }
 
     static let reuseIdentifier = String(describing: TrackerCell.self)
@@ -31,6 +33,7 @@ final class TrackerCell: UICollectionViewCell {
     private let dayLabel = UILabel()
     private let button = UIButton(type: .custom)
     private let cellLabel = UILabel()
+    private let pin = UIImageView(image: .pinSquare)
     private let emojiLabel = UILabel()
     private var action = {}
 
@@ -59,6 +62,14 @@ final class TrackerCell: UICollectionViewCell {
             UIColor.App.gray
             .withAlphaComponent(0.3)
             .cgColor
+        
+        colorView.addSubview(pin)
+        pin.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            pin.topAnchor.constraint(equalTo: colorView.topAnchor, constant: 18),
+            pin.trailingAnchor.constraint(equalTo: colorView.trailingAnchor, constant: -12),
+        ])
+        
         cellLabel.textAlignment = .left
         cellLabel.numberOfLines = 3
         let paragraphStyle = NSMutableParagraphStyle()

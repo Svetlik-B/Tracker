@@ -87,8 +87,14 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
             actionProvider: { action in
                 UIMenu(
                     children: [
-                        UIAction(title: "Закрепить") { action in
-                            print(action)
+                        UIAction(
+                            title: tracker.isPinned ? "Открепить" : "Закрепить"
+                        ) { [weak self] _ in
+                            if tracker.isPinned {
+                                try? self?.trackerStore.unpinTracker(at: indexPath)
+                            } else {
+                                try? self?.trackerStore.pinTracker(at: indexPath)
+                            }
                         },
                         UIAction(title: "Редактировать") { [weak self] _ in
                             self?.editTracker(at: indexPath)
@@ -135,6 +141,7 @@ extension TrackersViewController: UICollectionViewDataSource {
                     color: tracker.color,
                     count: tracker.count(),
                     completed: tracker.isCompleted(datePicker.date),
+                    isPinned: tracker.isPinned,
                     action: { [weak self] in
                         guard let self else { return }
                         do {
@@ -162,7 +169,8 @@ extension TrackersViewController: UICollectionViewDataSource {
             for: indexPath
         )
         if let header = header as? TrackerHeader {
-            header.label.text = trackerStore.sectionName(for: indexPath.section)
+            let text = trackerStore.sectionName(for: indexPath.section) ?? ""
+            header.label.text = text.isEmpty ? "Закрепленные" : text
         }
         return header
     }

@@ -25,6 +25,8 @@ protocol TrackerStoreProtocol: NSObject {
         schedule: Tracker.Schedule,
         categoryIndexPath: IndexPath
     ) throws
+    func pinTracker(at indexPath: IndexPath) throws
+    func unpinTracker(at indexPath: IndexPath) throws
 }
 
 final class TrackerStore: NSObject {
@@ -114,7 +116,8 @@ extension TrackerStore: TrackerStoreProtocol {
                 try context?.save()
             },
             categoryStore: categoryStore,
-            categoryIndexPath: categoryIndexPath
+            categoryIndexPath: categoryIndexPath,
+            isPinned: trackerCoreData.category?.name == ""
         )
     }
     func deleteTracker(at indexPath: IndexPath) throws {
@@ -155,7 +158,23 @@ extension TrackerStore: TrackerStoreProtocol {
         trackerCoreData.schedule = ScheduleTransformer.data(from: schedule)
         try context.save()
     }
-
+    func pinTracker(at indexPath: IndexPath) throws {
+        let categoryStore = TrackerCategoryStore(context: context)
+        let trackerCoreData = fetchedResultsController.object(at: indexPath)
+        let pinnedCategory = try categoryStore.findOrCreateCategory(name: "")
+        trackerCoreData.oldCategory = trackerCoreData.category?.name
+        trackerCoreData.category = pinnedCategory
+        try context.save()
+    }
+    func unpinTracker(at indexPath: IndexPath) throws {
+        let categoryStore = TrackerCategoryStore(context: context)
+        let trackerCoreData = fetchedResultsController.object(at: indexPath)
+        let oldCategory = try categoryStore.findOrCreateCategory(
+            name: trackerCoreData.oldCategory ?? ""
+        )
+        trackerCoreData.category = oldCategory
+        try context.save()
+    }
 }
 
 extension TrackerStore: NSFetchedResultsControllerDelegate {

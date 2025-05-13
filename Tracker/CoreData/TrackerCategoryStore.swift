@@ -77,28 +77,46 @@ extension TrackerCategoryStore {
         coreDataCategory.name = category.name
         try context.save()
     }
-    func findOrCreateCategory(_ category: TrackerCategory) throws -> IndexPath {
-        guard let indexPath = findCategory(category)
+    func findOrCreateCategory(name: String) throws -> TrackerCategoryCoreData {
+        guard let category = findCategory(name: name)
         else {
-            return try createCategory(category)
+            return try createCategory(name: name)
+        }
+        return category
+    }
+    func findOrCreateCategory(_ category: TrackerCategory) throws -> IndexPath {
+        let categoryCoreData = try findOrCreateCategory(name: category.name)
+        guard let indexPath = fetchController.indexPath(forObject: categoryCoreData)
+        else {
+            struct ImpossibleError: Error {}
+            throw ImpossibleError()
         }
         return indexPath
     }
-    func findCategory(_ category: TrackerCategory) -> IndexPath? {
+    func findCategory(name: String) -> TrackerCategoryCoreData? {
         let request = TrackerCategoryCoreData.fetchRequest()
-        request.predicate = NSPredicate(format: "name == %@", category.name)
-        let categories = try? context.fetch(request)
-        guard let firstCategory = categories?.first else { return nil }
-        return fetchController.indexPath(forObject: firstCategory)
-        
+        request.predicate = NSPredicate(format: "name == %@", name)
+        return try? context.fetch(request).first
+    }
+    func findCategory(_ category: TrackerCategory) -> IndexPath? {
+        guard let categoryCoreData = findCategory(name: category.name)
+        else { return nil }
+        return fetchController.indexPath(forObject: categoryCoreData)
+    }
+    func createCategory(name: String) throws -> TrackerCategoryCoreData {
+        let coreDataCategory = TrackerCategoryCoreData(context: context)
+        coreDataCategory.name = name
+        try context.save()
+        return coreDataCategory
     }
     func createCategory(_ category: TrackerCategory) throws -> IndexPath {
-        let coreDataCategory = TrackerCategoryCoreData(context: context)
-        coreDataCategory.name = category.name
-        try context.save()
-        struct ImpossibleError: Error {}
+        let coreDataCategory = try createCategory(name: category.name)
         guard let indexPath = fetchController.indexPath(forObject: coreDataCategory)
-        else { throw ImpossibleError() }
+        else {
+            struct ImpossibleError: Error {}
+            throw ImpossibleError()
+        }
         return indexPath
     }
 }
+

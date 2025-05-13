@@ -8,6 +8,7 @@
         <attribute name="color" attributeType="String"/>
         <attribute name="emoji" attributeType="String"/>
         <attribute name="name" attributeType="String"/>
+        <attribute name="oldCategory" optional="YES" attributeType="String"/>
         <attribute name="schedule" optional="YES" attributeType="Binary"/>
         <relationship name="category" maxCount="1" deletionRule="No Action" destinationEntity="TrackerCategoryCoreData" inverseName="trackers" inverseEntity="TrackerCategoryCoreData"/>
         <relationship name="records" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="TrackerRecordCoreData" inverseName="tracker" inverseEntity="TrackerRecordCoreData"/>
