@@ -41,9 +41,8 @@ final class TrackerStore: NSObject {
     init(context: NSManagedObjectContext) {
         self.context = context
 
-        let fetchRequest: NSFetchRequest<TrackerCoreData> = NSFetchRequest(
-            entityName: "TrackerCoreData"
-        )
+        let fetchRequest = TrackerCoreData.fetchRequest()
+        
         fetchRequest.sortDescriptors = [
             NSSortDescriptor(key: "category.name", ascending: true),
             NSSortDescriptor(key: "name", ascending: true),
