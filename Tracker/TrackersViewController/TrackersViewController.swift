@@ -20,6 +20,7 @@ final class TrackersViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
+    private var filter = FilterViewController.FilterType.all
     private let datePicker = UIDatePicker()
     private let searchBar = UISearchBar()
     private let imageContainerView = UIView()
@@ -34,7 +35,7 @@ final class TrackersViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .App.white
         setupUI()
-        updatedView()
+        updateFilters(dateChanged: false)
     }
 }
 
@@ -321,17 +322,35 @@ extension TrackersViewController {
 
     }
     @objc fileprivate func datePickerEvent() {
-        updatedView()
+        updateFilters(dateChanged: true)
     }
     @objc fileprivate func selectFilter() {
         let filterViewController = FilterViewController(
-            viewModel: .init(filter: .all) { filter in
-                print("filter: \(filter.rawValue)")
+            viewModel: .init(filter: filter) { [weak self] filter in
+                self?.filter = filter
+                self?.updateFilters(dateChanged: false)
             }
         )
         let navigationController = UINavigationController(rootViewController: filterViewController)
         navigationController.modalPresentationStyle = .pageSheet
         present(navigationController, animated: true)
+    }
+    fileprivate func updateFilters(dateChanged: Bool) {
+        if dateChanged && filter == .today {
+            filter = .all
+        }
+        switch filter {
+        case .all:
+            trackerStore.clearFilter()
+        case .today:
+            datePicker.date = Date()
+            trackerStore.filterByDay(datePicker.date.weekday.short)
+        case .completed:
+            trackerStore.filterCompleted(on: datePicker.date)
+        case .uncompleted:
+            trackerStore.filterNotCompleted(on: datePicker.date)
+        }
+        updatedView()
     }
     fileprivate func updatedView() {
         let haveTrackers = trackerStore.haveTrackers

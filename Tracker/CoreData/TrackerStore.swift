@@ -27,7 +27,13 @@ protocol TrackerStoreProtocol: NSObject {
     ) throws
     func pinTracker(at indexPath: IndexPath) throws
     func unpinTracker(at indexPath: IndexPath) throws
+    func clearFilter()
+    func filterByDay(_ day: String)
+    func filterCompleted(on date: Date)
+    func filterNotCompleted(on date: Date)
 }
+
+private let trackerStoreCacheName = "TrackerStoreCache"
 
 final class TrackerStore: NSObject {
     private let context: NSManagedObjectContext
@@ -42,7 +48,7 @@ final class TrackerStore: NSObject {
         self.context = context
 
         let fetchRequest = TrackerCoreData.fetchRequest()
-        
+
         fetchRequest.sortDescriptors = [
             NSSortDescriptor(key: "category.name", ascending: true),
             NSSortDescriptor(key: "name", ascending: true),
@@ -51,7 +57,7 @@ final class TrackerStore: NSObject {
             fetchRequest: fetchRequest,
             managedObjectContext: context,
             sectionNameKeyPath: "category.name",
-            cacheName: "AllTrackers"
+            cacheName: trackerStoreCacheName
         )
         try? controller.performFetch()
         self.fetchedResultsController = controller
@@ -73,6 +79,38 @@ extension TrackerStore: TrackerStoreProtocol {
     var numberOfSections: Int { fetchedResultsController.sections?.count ?? 0 }
     var haveTrackers: Bool { (fetchedResultsController.sections?.count ?? 0) > 0 }
     var categoryStore: TrackerCategoryStoreProtocol { TrackerCategoryStore(context: context) }
+    func clearFilter() {
+        updatePredicate(nil)
+    }
+    func filterByDay(_ day: String) {
+        updatePredicate(
+            .init(
+                format: "schedule contains %@",
+                day
+            )
+        )
+    }
+    func filterCompleted(on date: Date) {
+        updatePredicate(
+            .init(
+                format: "records.date CONTAINS %@",
+                Calendar.current.startOfDay(for: date) as NSDate
+            )
+        )
+    }
+    func filterNotCompleted(on date: Date) {
+        updatePredicate(
+            .init(
+                format: "(records.@count = 0) OR NOT (records.date CONTAINS %@)",
+                Calendar.current.startOfDay(for: date) as NSDate
+            )
+        )
+    }
+    func updatePredicate(_ predicate: NSPredicate?) {
+        fetchedResultsController.fetchRequest.predicate = predicate
+        NSFetchedResultsController<TrackerCoreData>.deleteCache(withName: trackerStoreCacheName)
+        try? fetchedResultsController.performFetch()
+    }
     func numberOfItems(in section: Int) -> Int {
         let sectionInfo = fetchedResultsController.sections?[section]
         return sectionInfo?.numberOfObjects ?? 0
@@ -87,7 +125,8 @@ extension TrackerStore: TrackerStoreProtocol {
         let categoryStore = TrackerCategoryStore(context: context)
         var categoryIndexPath = IndexPath()
         if let categoryCoredData,
-           let indexPath = categoryStore.fetchController.indexPath(forObject: categoryCoredData) {
+            let indexPath = categoryStore.fetchController.indexPath(forObject: categoryCoredData)
+        {
             categoryIndexPath = indexPath
         } else {
             fatalError("Не найдена категория")
@@ -97,13 +136,16 @@ extension TrackerStore: TrackerStoreProtocol {
             color: UIColorTransformer.color(from: trackerCoreData.color ?? ""),
             emoji: trackerCoreData.emoji ?? "",
             schedule: ScheduleTransformer.schedule(from: trackerCoreData.schedule),
-            count: { trackerCoreData.records?.count ?? 0 },
+            count: { trackerCoreData.records?.count ?? 0
+            },
             isCompleted: { trackerCoreData.findTrackerRecord(for: $0) != nil },
             toggleCompleted: { date in
                 guard let record = trackerCoreData.findTrackerRecord(for: date)
                 else {
                     if date > Date.now { return }
-                    let trackerRecord = TrackerRecord(date: date)
+                    let trackerRecord = TrackerRecord(
+                        date: Calendar.current.startOfDay(for: date),
+                    )
                     try TrackerRecordStore().addTrackerRecord(
                         trackerRecord,
                         for: trackerCoreData

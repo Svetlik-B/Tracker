@@ -104,7 +104,7 @@ extension FilterViewController {
 
     fileprivate func setupUI() {
         view.backgroundColor = .App.white
-        title = "Категория"
+        title = "Фильтры"
 
         setupTableView()
     }
