@@ -150,7 +150,10 @@ extension EditTrackerViewController: UICollectionViewDataSource {
                 )
                 if let cell = cell as? TrackerCategoryCell {
                     if let indexPath = categoryIndexPath {
-                        cell.categoryLabel.text = categoryStore.category(at: indexPath).name
+                        let category =                         categoryStore.category(at: indexPath)
+                        cell.categoryLabel.text = category.name == ""
+                        ? "Закрепленные"
+                        : category.name
                     }
                     cell.contentView.layer.maskedCorners =
                         needsSchedule

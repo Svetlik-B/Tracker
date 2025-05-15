@@ -20,7 +20,8 @@ final class TrackersViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
-    private var filter = FilterViewController.FilterType.all
+    private var filter = FilterType.all
+    private let searchController = UISearchController(searchResultsController: nil)
     private let datePicker = UIDatePicker()
     private let imageContainerView = UIView()
     private let filterButton = UIButton(type: .system)
@@ -34,7 +35,12 @@ final class TrackersViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .App.white
         setupUI()
-        updateFilters(dateChanged: false)
+        trackerStore.updateFilters(
+            date: datePicker.date,
+            searchString: "",
+            filter: .all
+        )
+        updateView()
     }
 }
 
@@ -193,15 +199,12 @@ extension TrackersViewController: UICollectionViewDataSource {
 // MARK: - UISearchResultsUpdating
 extension TrackersViewController: UISearchResultsUpdating {
     func updateSearchResults(for searchController: UISearchController) {
-        guard
-            let searchText = searchController.searchBar.text,
-            !searchText.isEmpty
-        else {
-            trackerStore.filterByTrackerName(nil)
-            updateView()
-            return
-        }
-        trackerStore.filterByTrackerName(searchText)
+        let searchString = searchController.searchBar.text ?? ""
+        trackerStore.updateFilters(
+            date: datePicker.date,
+            searchString: searchString,
+            filter: filter
+        )
         updateView()
     }
 
@@ -267,7 +270,6 @@ extension TrackersViewController {
 
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: datePicker)
 
-        let searchController = UISearchController(searchResultsController: nil)
         searchController.obscuresBackgroundDuringPresentation = false
         searchController.searchBar.placeholder = "Поиск"
         navigationItem.searchController = searchController
@@ -364,41 +366,42 @@ extension TrackersViewController {
         setupPlaceholderView()
     }
     @objc fileprivate func datePickerEvent() {
-        updateFilters(dateChanged: true)
+        trackerStore.updateFilters(
+            date: datePicker.date,
+            searchString: searchController.searchBar.text ?? "",
+            filter: filter
+        )
+        updateView()
     }
     @objc fileprivate func selectFilter() {
         let filterViewController = FilterViewController(
             viewModel: .init(filter: filter) { [weak self] filter in
-                self?.filter = filter
-                self?.updateFilters(dateChanged: false)
+                guard let self else { return }
+                self.filter = filter
+                if filter == .today {
+                    self.datePicker.date = Date()
+                }
+                self.trackerStore.updateFilters(
+                    date: self.datePicker.date,
+                    searchString: self.searchController.searchBar.text ?? "",
+                    filter: filter
+                )
+                updateView()
             }
         )
         let navigationController = UINavigationController(rootViewController: filterViewController)
         navigationController.modalPresentationStyle = .pageSheet
         present(navigationController, animated: true)
     }
-    fileprivate func updateFilters(dateChanged: Bool) {
-        if dateChanged && filter == .today {
-            filter = .all
-        }
-        switch filter {
-        case .all:
-            trackerStore.clearFilter()
-        case .today:
-            datePicker.date = Date()
-            trackerStore.filterByDay(datePicker.date.weekday.short)
-        case .completed:
-            trackerStore.filterCompleted(on: datePicker.date)
-        case .uncompleted:
-            trackerStore.filterNotCompleted(on: datePicker.date)
-        }
-        updateView()
-    }
     fileprivate func updateView() {
-        let haveTrackers = trackerStore.haveTrackers
-        collectionView.isHidden = !haveTrackers
-        imageContainerView.isHidden = haveTrackers
-        collectionView.reloadData()
+        if trackerStore.haveTrackers {
+            collectionView.isHidden = false
+            imageContainerView.isHidden = true
+            collectionView.reloadData()
+        } else {
+            collectionView.isHidden = true
+            imageContainerView.isHidden = false
+        }
     }
     fileprivate var selectedWeekday: Tracker.Weekday {
         let weekdayComponent = datePicker.calendar.dateComponents(

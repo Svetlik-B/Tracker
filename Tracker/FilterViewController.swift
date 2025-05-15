@@ -21,12 +21,6 @@ final class FilterViewController: UIViewController {
 
 // MARK: - Interface
 extension FilterViewController {
-    enum FilterType: String, CaseIterable {
-        case all = "Все трекеры"
-        case today = "Трекеры на сегодня"
-        case completed = "Завершенные"
-        case uncompleted = "Не завершенные"
-    }
     struct ViewModel {
         var filter: FilterType
         var action: (FilterType) -> Void

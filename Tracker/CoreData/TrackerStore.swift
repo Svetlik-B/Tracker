@@ -27,11 +27,31 @@ protocol TrackerStoreProtocol: NSObject {
     ) throws
     func pinTracker(at indexPath: IndexPath) throws
     func unpinTracker(at indexPath: IndexPath) throws
-    func clearFilter()
-    func filterByDay(_ day: String)
-    func filterCompleted(on date: Date)
-    func filterNotCompleted(on date: Date)
-    func filterByTrackerName(_ name: String?)
+    func filterBy(_ filters: [TrackerFilter])
+}
+
+extension TrackerStoreProtocol {
+    func updateFilters(
+        date: Date,
+        searchString: String,
+        filter: FilterType
+    ) {
+        switch filter {
+        case .all:  // только search
+            filterBy([.name(searchString)])
+        case .today:
+            let today = Calendar.current.startOfDay(for: Date())
+            if Calendar.current.startOfDay(for: date) == today {
+                filterBy([.name(searchString), .day(date.weekday.short)])
+            } else {
+                filterBy([.name(searchString)])
+            }
+        case .completed:
+            filterBy([.name(searchString), .completed(date)])
+        case .uncompleted:
+            filterBy([.name(searchString), .uncompleted(date)])
+        }
+    }
 }
 
 private let trackerStoreCacheName = "TrackerStoreCache"
@@ -76,50 +96,42 @@ extension TrackerStore {
     }
 }
 
+extension TrackerFilter {
+    fileprivate var predicate: NSPredicate? {
+        switch self {
+        case .name(let name):
+            name.isEmpty
+                ? nil
+                : NSPredicate(format: "name contains[cd] %@", name)
+        case .day(let day):
+            NSPredicate(format: "schedule contains %@", day)
+        case .completed(let date):
+            NSPredicate(
+                format: "records.date CONTAINS %@",
+                Calendar.current.startOfDay(for: date) as NSDate
+            )
+        case .uncompleted(let date):
+            NSPredicate(
+                format: "(records.@count = 0) OR NOT (records.date CONTAINS %@)",
+                Calendar.current.startOfDay(for: date) as NSDate
+            )
+        }
+    }
+}
+
 extension TrackerStore: TrackerStoreProtocol {
     var numberOfSections: Int { fetchedResultsController.sections?.count ?? 0 }
     var haveTrackers: Bool { (fetchedResultsController.sections?.count ?? 0) > 0 }
     var categoryStore: TrackerCategoryStoreProtocol { TrackerCategoryStore(context: context) }
-    func clearFilter() {
-        updatePredicate(nil)
-    }
-    func filterByDay(_ day: String) {
-        updatePredicate(
-            .init(
-                format: "schedule contains %@",
-                day
-            )
-        )
-    }
-    func filterCompleted(on date: Date) {
-        updatePredicate(
-            .init(
-                format: "records.date CONTAINS %@",
-                Calendar.current.startOfDay(for: date) as NSDate
-            )
-        )
-    }
-    func filterNotCompleted(on date: Date) {
-        updatePredicate(
-            .init(
-                format: "(records.@count = 0) OR NOT (records.date CONTAINS %@)",
-                Calendar.current.startOfDay(for: date) as NSDate
-            )
-        )
-    }
-    func filterByTrackerName(_ name: String?) {
-        guard let name
-        else {
-            updatePredicate(nil)
-            return
+    func filterBy(_ filters: [TrackerFilter]) {
+        let predicates = filters.compactMap(\.predicate)
+        if predicates.isEmpty {
+            fetchedResultsController.fetchRequest.predicate = nil
+        } else {
+            let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+            print(predicate)
+            fetchedResultsController.fetchRequest.predicate = predicate
         }
-        updatePredicate(
-            .init(format: "name contains[cd] %@", name)
-        )
-    }
-    func updatePredicate(_ predicate: NSPredicate?) {
-        print(predicate)
-        fetchedResultsController.fetchRequest.predicate = predicate
         NSFetchedResultsController<TrackerCoreData>.deleteCache(withName: trackerStoreCacheName)
         try? fetchedResultsController.performFetch()
     }
@@ -148,7 +160,8 @@ extension TrackerStore: TrackerStoreProtocol {
             color: UIColorTransformer.color(from: trackerCoreData.color ?? ""),
             emoji: trackerCoreData.emoji ?? "",
             schedule: ScheduleTransformer.schedule(from: trackerCoreData.schedule),
-            count: { trackerCoreData.records?.count ?? 0
+            count: {
+                trackerCoreData.records?.count ?? 0
             },
             isCompleted: { trackerCoreData.findTrackerRecord(for: $0) != nil },
             toggleCompleted: { date in

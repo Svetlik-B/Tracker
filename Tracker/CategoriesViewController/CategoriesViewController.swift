@@ -55,7 +55,9 @@ extension CategoriesViewController: UITableViewDataSource {
         )
         let category = viewModel.categoryStore.category(at: indexPath)
         cell.selectionStyle = .none
-        cell.textLabel?.text = category.name
+        cell.textLabel?.text = category.name == ""
+        ? "Закрепленные"
+        : category.name
         cell.textLabel?.textColor = .App.black
         cell.backgroundColor = .App.background
         cell.separatorInset = .init(top: 0, left: 16, bottom: 0, right: 16)
