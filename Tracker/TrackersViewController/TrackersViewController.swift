@@ -12,7 +12,7 @@ final class TrackersViewController: UIViewController {
         self.trackerStore = trackerStore
         super.init(nibName: nil, bundle: nil)
         trackerStore.onDidChangeContent = { [weak self] in
-            self?.updatedView()
+            self?.updateView()
         }
     }
 
@@ -184,11 +184,11 @@ extension TrackersViewController: UISearchResultsUpdating {
             !searchText.isEmpty
         else {
             trackerStore.filterByTrackerName(nil)
-            updatedView()
+            updateView()
             return
         }
         trackerStore.filterByTrackerName(searchText)
-        updatedView()
+        updateView()
     }
     
 }
@@ -367,9 +367,9 @@ extension TrackersViewController {
         case .uncompleted:
             trackerStore.filterNotCompleted(on: datePicker.date)
         }
-        updatedView()
+        updateView()
     }
-    fileprivate func updatedView() {
+    fileprivate func updateView() {
         let haveTrackers = trackerStore.haveTrackers
         collectionView.isHidden = !haveTrackers
         filterButton.isHidden = !haveTrackers
