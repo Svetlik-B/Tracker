@@ -110,6 +110,20 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
             }
         )
     }
+    func collectionView(
+        _ collectionView: UICollectionView,
+        layout collectionViewLayout: UICollectionViewLayout,
+        insetForSectionAt section: Int
+    ) -> UIEdgeInsets {
+        guard section == trackerStore.numberOfSections - 1
+        else { return .zero }
+        return .init(
+            top: 0,
+            left: 0,
+            bottom: 60,
+            right: 0
+        )
+    }
 }
 
 // MARK: - UICollectionViewDataSource
@@ -190,7 +204,7 @@ extension TrackersViewController: UISearchResultsUpdating {
         trackerStore.filterByTrackerName(searchText)
         updateView()
     }
-    
+
 }
 
 // MARK: - Implementation
@@ -229,7 +243,7 @@ extension TrackersViewController {
         present(vc, animated: true)
     }
 
-    fileprivate func setupUI() {
+    fileprivate func setupNavigationBar() {
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationController?.navigationBar.tintColor = .App.black
         navigationItem.title = "Трекеры"
@@ -252,25 +266,15 @@ extension TrackersViewController {
         )
 
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: datePicker)
-        
+
         let searchController = UISearchController(searchResultsController: nil)
         searchController.obscuresBackgroundDuringPresentation = false
-            searchController.searchBar.placeholder = "Поиск"
-            navigationItem.searchController = searchController
+        searchController.searchBar.placeholder = "Поиск"
+        navigationItem.searchController = searchController
         searchController.searchResultsUpdater = self
+    }
 
-        let mainStack = UIStackView(frame: view.bounds)
-        mainStack.axis = .vertical
-        view.addSubview(mainStack)
-
-        mainStack.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            mainStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            mainStack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            mainStack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            mainStack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-        ])
-
+    fileprivate func setupCollectionView() {
         layout.scrollDirection = .vertical
         layout.minimumLineSpacing = 0
         layout.minimumInteritemSpacing = Constant.minimumInteritemSpacing
@@ -293,8 +297,16 @@ extension TrackersViewController {
             forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
             withReuseIdentifier: TrackerHeader.reuseIdentifier
         )
-        mainStack.addArrangedSubview(collectionView)
+        collectionView.frame = view.bounds
+        collectionView.autoresizingMask = [
+            .flexibleHeight,
+            .flexibleWidth,
+        ]
+        view.addSubview(collectionView)
 
+    }
+
+    fileprivate func setupPlaceholderView() {
         let logoImageView = UIImageView(image: .collectionPlaceholder)
         logoImageView.contentMode = .scaleAspectFit
 
@@ -303,7 +315,12 @@ extension TrackersViewController {
         questionLabel.textColor = .App.black
         questionLabel.font = UIFont.systemFont(ofSize: 12, weight: .medium)
 
-        mainStack.addArrangedSubview(imageContainerView)
+        imageContainerView.frame = view.bounds
+        imageContainerView.autoresizingMask = [
+            .flexibleHeight,
+            .flexibleWidth,
+        ]
+        view.addSubview(imageContainerView)
 
         let imageStack = UIStackView()
         imageStack.axis = .vertical
@@ -316,7 +333,9 @@ extension TrackersViewController {
             imageStack.centerXAnchor.constraint(equalTo: imageContainerView.centerXAnchor),
             imageStack.centerYAnchor.constraint(equalTo: imageContainerView.centerYAnchor),
         ])
+    }
 
+    fileprivate func setupFilterButton() {
         filterButton.addTarget(self, action: #selector(selectFilter), for: .touchUpInside)
         filterButton.setTitle("Фильтры", for: .normal)
         filterButton.backgroundColor = .App.blue
@@ -324,7 +343,7 @@ extension TrackersViewController {
         filterButton.layer.cornerRadius = 16
 
         filterButton.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(filterButton)
+        collectionView.addSubview(filterButton)
         NSLayoutConstraint.activate(
             [
                 filterButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
@@ -336,7 +355,13 @@ extension TrackersViewController {
                 filterButton.heightAnchor.constraint(equalToConstant: 50),
             ]
         )
+    }
 
+    fileprivate func setupUI() {
+        setupNavigationBar()
+        setupCollectionView()
+        setupFilterButton()
+        setupPlaceholderView()
     }
     @objc fileprivate func datePickerEvent() {
         updateFilters(dateChanged: true)
@@ -372,7 +397,6 @@ extension TrackersViewController {
     fileprivate func updateView() {
         let haveTrackers = trackerStore.haveTrackers
         collectionView.isHidden = !haveTrackers
-        filterButton.isHidden = !haveTrackers
         imageContainerView.isHidden = haveTrackers
         collectionView.reloadData()
     }

@@ -4,7 +4,6 @@ final class TabBarController: UITabBarController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupTabBar()
         setupViewControllers()
     }
 
