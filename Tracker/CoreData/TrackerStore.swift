@@ -31,6 +31,7 @@ protocol TrackerStoreProtocol: NSObject {
     func filterByDay(_ day: String)
     func filterCompleted(on date: Date)
     func filterNotCompleted(on date: Date)
+    func filterByTrackerName(_ name: String?)
 }
 
 private let trackerStoreCacheName = "TrackerStoreCache"
@@ -106,7 +107,18 @@ extension TrackerStore: TrackerStoreProtocol {
             )
         )
     }
+    func filterByTrackerName(_ name: String?) {
+        guard let name
+        else {
+            updatePredicate(nil)
+            return
+        }
+        updatePredicate(
+            .init(format: "name contains[cd] %@", name)
+        )
+    }
     func updatePredicate(_ predicate: NSPredicate?) {
+        print(predicate)
         fetchedResultsController.fetchRequest.predicate = predicate
         NSFetchedResultsController<TrackerCoreData>.deleteCache(withName: trackerStoreCacheName)
         try? fetchedResultsController.performFetch()

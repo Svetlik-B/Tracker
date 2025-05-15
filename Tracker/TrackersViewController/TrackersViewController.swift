@@ -22,7 +22,6 @@ final class TrackersViewController: UIViewController {
 
     private var filter = FilterViewController.FilterType.all
     private let datePicker = UIDatePicker()
-    private let searchBar = UISearchBar()
     private let imageContainerView = UIView()
     private let filterButton = UIButton(type: .system)
     private let layout = UICollectionViewFlowLayout()
@@ -177,6 +176,23 @@ extension TrackersViewController: UICollectionViewDataSource {
     }
 }
 
+// MARK: - UISearchResultsUpdating
+extension TrackersViewController: UISearchResultsUpdating {
+    func updateSearchResults(for searchController: UISearchController) {
+        guard
+            let searchText = searchController.searchBar.text,
+            !searchText.isEmpty
+        else {
+            trackerStore.filterByTrackerName(nil)
+            updatedView()
+            return
+        }
+        trackerStore.filterByTrackerName(searchText)
+        updatedView()
+    }
+    
+}
+
 // MARK: - Implementation
 extension TrackersViewController {
     fileprivate func editTracker(at indexPath: IndexPath) {
@@ -236,6 +252,12 @@ extension TrackersViewController {
         )
 
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: datePicker)
+        
+        let searchController = UISearchController(searchResultsController: nil)
+        searchController.obscuresBackgroundDuringPresentation = false
+            searchController.searchBar.placeholder = "Поиск"
+            navigationItem.searchController = searchController
+        searchController.searchResultsUpdater = self
 
         let mainStack = UIStackView(frame: view.bounds)
         mainStack.axis = .vertical
@@ -248,11 +270,6 @@ extension TrackersViewController {
             mainStack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             mainStack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
-
-        searchBar.placeholder = "Поиск"
-        searchBar.searchBarStyle = .minimal
-        searchBar.tintColor = .App.blue
-        mainStack.addArrangedSubview(searchBar)
 
         layout.scrollDirection = .vertical
         layout.minimumLineSpacing = 0
