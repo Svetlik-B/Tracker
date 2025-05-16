@@ -121,13 +121,12 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
         layout collectionViewLayout: UICollectionViewLayout,
         insetForSectionAt section: Int
     ) -> UIEdgeInsets {
-        guard section == trackerStore.numberOfSections - 1
-        else { return .zero }
+        let isLastSection = section == trackerStore.numberOfSections - 1
         return .init(
             top: 0,
-            left: 0,
-            bottom: 60,
-            right: 0
+            left: Constant.sectionInset,
+            bottom: isLastSection ? 60 : 0,
+            right: Constant.sectionInset
         )
     }
 }
@@ -280,12 +279,6 @@ extension TrackersViewController {
         layout.scrollDirection = .vertical
         layout.minimumLineSpacing = 0
         layout.minimumInteritemSpacing = Constant.minimumInteritemSpacing
-        layout.sectionInset = .init(
-            top: 0,
-            left: Constant.sectionInset,
-            bottom: 0,
-            right: Constant.sectionInset
-        )
 
         collectionView.backgroundColor = .App.white
         collectionView.dataSource = self
