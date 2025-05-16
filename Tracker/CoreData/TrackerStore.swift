@@ -28,6 +28,7 @@ protocol TrackerStoreProtocol: NSObject {
     func pinTracker(at indexPath: IndexPath) throws
     func unpinTracker(at indexPath: IndexPath) throws
     func filterBy(_ filters: [TrackerFilter])
+    func getStatistics() -> [StatisticsCellView.ViewModel]
 }
 
 extension TrackerStoreProtocol {
@@ -102,9 +103,9 @@ extension TrackerFilter {
         case .name(let name):
             name.isEmpty
                 ? nil
-                : NSPredicate(format: "name contains[cd] %@", name)
+                : NSPredicate(format: "name CONTAINS[cd] %@", name)
         case .day(let day):
-            NSPredicate(format: "schedule contains %@", day)
+            NSPredicate(format: "(schedule = '') OR (schedule CONTAINS %@)", day)
         case .completed(let date):
             NSPredicate(
                 format: "records.date CONTAINS %@",
@@ -112,10 +113,21 @@ extension TrackerFilter {
             )
         case .uncompleted(let date):
             NSPredicate(
-                format: "(records.@count = 0) OR NOT (records.date CONTAINS %@)",
+                format: "(records.@count = 0) OR (NONE records.date = %@)",
                 Calendar.current.startOfDay(for: date) as NSDate
             )
         }
+    }
+}
+
+private enum Statistics {
+    static var bestPeriod: Int {
+        get { UserDefaults.standard.integer(forKey: "bestPeriodKey") }
+        set { UserDefaults.standard.set(newValue, forKey: "bestPeriodKey")}
+    }
+    static var idealDays: Int {
+        get { UserDefaults.standard.integer(forKey: "idealDaysKey") }
+        set { UserDefaults.standard.set(newValue, forKey: "idealDaysKey")}
     }
 }
 
@@ -123,10 +135,36 @@ extension TrackerStore: TrackerStoreProtocol {
     var numberOfSections: Int { fetchedResultsController.sections?.count ?? 0 }
     var haveTrackers: Bool { (fetchedResultsController.sections?.count ?? 0) > 0 }
     var categoryStore: TrackerCategoryStoreProtocol { TrackerCategoryStore(context: context) }
+    func getStatistics() -> [StatisticsCellView.ViewModel] {
+        var result = [StatisticsCellView.ViewModel]()
+        let fetchRequest = TrackerRecordCoreData.fetchRequest()
+        fetchRequest.sortDescriptors = [
+            NSSortDescriptor(keyPath: \TrackerRecordCoreData.date, ascending: true)
+        ]
+        let records = (try? context.fetch(fetchRequest)) ?? []
+        guard let firstRecordDate = records.first?.date
+        else { return result }
+        let today = Calendar.current.startOfDay(for: Date())
+        let difference = Calendar.current.dateComponents([.day], from: firstRecordDate, to: today)
+        let differenceDays = difference.day ?? 0
+        let totalDays = differenceDays + 1
+        guard totalDays > 0
+        else { return result }
+        
+        // Лучший период
+        result.append(.init(amount: Statistics.bestPeriod, text: "Лучший период"))
+        // Идеальные дни
+        result.append(.init(amount: Statistics.idealDays, text: "Идеальные дни"))
+        result.append(.init(amount: records.count, text: "Трекеров завершено"))
+        result.append(.init(amount: records.count / totalDays, text: "Среднее значение"))
+        
+        return result
+    }
     func filterBy(_ filters: [TrackerFilter]) {
         let predicates = filters.compactMap(\.predicate)
         if predicates.isEmpty {
             fetchedResultsController.fetchRequest.predicate = nil
+            print("no predicates")
         } else {
             let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
             print(predicate)
@@ -164,27 +202,52 @@ extension TrackerStore: TrackerStoreProtocol {
                 trackerCoreData.records?.count ?? 0
             },
             isCompleted: { trackerCoreData.findTrackerRecord(for: $0) != nil },
-            toggleCompleted: { date in
-                guard let record = trackerCoreData.findTrackerRecord(for: date)
-                else {
-                    if date > Date.now { return }
-                    let trackerRecord = TrackerRecord(
-                        date: Calendar.current.startOfDay(for: date),
-                    )
-                    try TrackerRecordStore().addTrackerRecord(
-                        trackerRecord,
-                        for: trackerCoreData
-                    )
-                    return
-                }
-                let context = record.managedObjectContext
-                context?.delete(record)
-                try context?.save()
+            toggleCompleted: { [weak self] date in
+                try self?.toggleCompleted(trackerCoreData: trackerCoreData, date: date)
             },
             categoryStore: categoryStore,
             categoryIndexPath: categoryIndexPath,
             isPinned: trackerCoreData.category?.name == ""
         )
+    }
+    func toggleCompleted(trackerCoreData: TrackerCoreData, date: Date) throws {
+        var trackerAdded: Bool
+        if let record = trackerCoreData.findTrackerRecord(for: date) {
+            self.context.delete(record)
+            trackerAdded = false
+        } else {
+            if date > Date.now { return }
+            try TrackerRecordStore(context: self.context).addTrackerRecord(
+                date: date,
+                for: trackerCoreData
+            )
+            trackerAdded = true
+        }
+        try self.context.save()
+        let uncompletedTrackersCount = uncompletedTrackersCount(for: date)
+        if trackerAdded {
+            if uncompletedTrackersCount == 0 {
+                Statistics.idealDays += 1
+//                Statistics.bestPeriod += 1
+            }
+        } else {
+            if uncompletedTrackersCount == 1 {
+                if Statistics.idealDays > 0 {
+                    Statistics.idealDays -= 1
+                }
+//                if Statistics.bestPeriod > 0 {
+//                    Statistics.bestPeriod -= 1
+//                }
+            }
+        }
+    }
+    func uncompletedTrackersCount(for date: Date) -> Int {
+        let fetchRequest = TrackerCoreData.fetchRequest()
+        fetchRequest.predicate = NSPredicate(
+            format: "(records.@count == 0) OR (NONE records.date = %@)",
+            Calendar.current.startOfDay(for: date) as NSDate
+        )
+        return (try? context.count(for: fetchRequest)) ?? 0
     }
     func deleteTracker(at indexPath: IndexPath) throws {
         let trackerToDelete = fetchedResultsController.object(at: indexPath)
