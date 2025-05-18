@@ -26,6 +26,7 @@ final class CategoriesViewController: UIViewController {
 extension CategoriesViewController {
     struct ViewModel {
         var categoryStore: TrackerCategoryStoreProtocol
+        var currentCategoryIndexPath: IndexPath?
         var action: (IndexPath) -> Void
     }
 }
@@ -55,15 +56,17 @@ extension CategoriesViewController: UITableViewDataSource {
         )
         let category = viewModel.categoryStore.category(at: indexPath)
         cell.selectionStyle = .none
-        cell.textLabel?.text = category.name == ""
-        ? "Закрепленные"
-        : category.name
+        cell.textLabel?.text =
+            category.name == ""
+            ? "Закрепленные"
+            : category.name
         cell.textLabel?.textColor = .App.black
         cell.backgroundColor = .App.background
         cell.separatorInset = .init(top: 0, left: 16, bottom: 0, right: 16)
-        cell.accessoryType = tableView.indexPathForSelectedRow == indexPath
-        ? .checkmark
-        : .none
+        cell.accessoryType =
+            tableView.indexPathForSelectedRow == indexPath
+            ? .checkmark
+            : .none
         return cell
     }
 }
@@ -90,20 +93,19 @@ extension CategoriesViewController: UITableViewDelegate {
         contextMenuConfigurationForRowAt indexPath: IndexPath,
         point: CGPoint
     ) -> UIContextMenuConfiguration? {
-        .init(
-            actionProvider: { action in
-                UIMenu(
-                    children: [
-                        UIAction(title: "Редактировать") { [weak self] _ in
-                            self?.presentEditCategoriesViewController(at: indexPath)
-                        },
-                        UIAction(title: "Удалить", attributes: .destructive) { [weak self] _ in
-                            self?.deleteCategory(at: indexPath)
-                        },
-                    ]
-                )
+        var menuElements: [UIMenuElement] = [
+            UIAction(title: "Редактировать") { [weak self] _ in
+                self?.presentEditCategoriesViewController(at: indexPath)
             }
-        )
+        ]
+        if indexPath != viewModel.currentCategoryIndexPath {
+            menuElements.append(
+                UIAction(title: "Удалить", attributes: .destructive) { [weak self] _ in
+                    self?.deleteCategory(at: indexPath)
+                }
+            )
+        }
+        return .init(actionProvider: { _ in UIMenu(children: menuElements) })
     }
 }
 

@@ -384,6 +384,7 @@ extension EditTrackerViewController {
         let categoriesViewController = CategoriesViewController(
             viewModel: .init(
                 categoryStore: categoryStore,
+                currentCategoryIndexPath: tracker?.categoryIndexPath,
                 action: { [weak self] in
                     self?.categoryIndexPath = $0
                     self?.collectionView.reloadData()
