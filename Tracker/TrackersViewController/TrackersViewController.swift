@@ -421,8 +421,12 @@ extension TrackersViewController {
         let haveTrackers = trackerStore.haveTrackers
         let haveResults = trackerStore.haveResults
         
-        collectionView.isHidden = !haveTrackers || !haveResults
-        noResultsView.isHidden = !haveTrackers || haveResults
+        if haveTrackers {
+            collectionView.reloadData()
+        }
+        
+        collectionView.isHidden = !haveResults
+        noResultsView.isHidden = !(haveTrackers && !haveResults)
         filterButton.isHidden = !haveTrackers
         noTrackersView.isHidden = haveTrackers
     }

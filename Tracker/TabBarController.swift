@@ -17,7 +17,7 @@ final class TabBarController: UITabBarController {
 
     override func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
         if item === statisticsItem {
-            statisticsViewModel.data = trackerStore.getStatistics()
+            statisticsViewModel.data = (try? trackerStore.getStatistics()) ?? []
         }
     }
 

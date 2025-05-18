@@ -29,7 +29,7 @@ protocol TrackerStoreProtocol: NSObject {
     func pinTracker(at indexPath: IndexPath) throws
     func unpinTracker(at indexPath: IndexPath) throws
     func filterBy(_ filters: [TrackerFilter])
-    func getStatistics() -> [StatisticsCellView.ViewModel]
+    func getStatistics() throws -> [StatisticsCellView.ViewModel]
 }
 
 extension TrackerStoreProtocol {
@@ -38,6 +38,7 @@ extension TrackerStoreProtocol {
         searchString: String,
         filter: FilterType
     ) {
+        let startOfDay = Calendar.current.startOfDay(for: date)
         switch filter {
         case .all:  // только search
             filterBy([.name(searchString)])
@@ -49,9 +50,9 @@ extension TrackerStoreProtocol {
                 filterBy([.name(searchString)])
             }
         case .completed:
-            filterBy([.name(searchString), .completed(date)])
+            filterBy([.name(searchString), .completed(startOfDay)])
         case .uncompleted:
-            filterBy([.name(searchString), .uncompleted(date)])
+            filterBy([.name(searchString), .uncompleted(startOfDay)])
         }
     }
 }
@@ -114,21 +115,10 @@ extension TrackerFilter {
             )
         case .uncompleted(let date):
             NSPredicate(
-                format: "(records.@count = 0) OR (NONE records.date = %@)",
+                format: "NONE records.date = %@",
                 Calendar.current.startOfDay(for: date) as NSDate
             )
         }
-    }
-}
-
-private enum Statistics {
-    static var bestPeriod: Int {
-        get { UserDefaults.standard.integer(forKey: "bestPeriodKey") }
-        set { UserDefaults.standard.set(newValue, forKey: "bestPeriodKey")}
-    }
-    static var idealDays: Int {
-        get { UserDefaults.standard.integer(forKey: "idealDaysKey") }
-        set { UserDefaults.standard.set(newValue, forKey: "idealDaysKey")}
     }
 }
 
@@ -141,15 +131,43 @@ extension TrackerStore: TrackerStoreProtocol {
     }
     var haveResults: Bool { (fetchedResultsController.sections?.count ?? 0) > 0 }
     var categoryStore: TrackerCategoryStoreProtocol { TrackerCategoryStore(context: context) }
-    func getStatistics() -> [StatisticsCellView.ViewModel] {
+    func isIdealDate(_ startOfDay: Date) throws -> Bool? {
+        let day = startOfDay.weekday.short
+        let fetchRequest = TrackerCoreData.fetchRequest()
+        fetchRequest.predicate = .init(format: "schedule CONTAINS[cd] %@", day)
+        let trackers = try context.fetch(fetchRequest)
+        guard trackers.isEmpty == false else { return nil }
+        for tracker in trackers {
+            if !tracker.isCompleted(on: startOfDay) {
+                return false
+            }
+        }
+        return true
+    }
+    func getStatistics() throws -> [StatisticsCellView.ViewModel] {
         var result = [StatisticsCellView.ViewModel]()
         let fetchRequest = TrackerRecordCoreData.fetchRequest()
         fetchRequest.sortDescriptors = [
             NSSortDescriptor(keyPath: \TrackerRecordCoreData.date, ascending: true)
         ]
-        let records = (try? context.fetch(fetchRequest)) ?? []
+        let records = try context.fetch(fetchRequest)
+        for record in records {
+            print(record.date?.formatted() ?? "No date",  record.tracker?.name ?? "No tracker")
+        }
+        
+        let ideals = try Set(records.compactMap(\.date))
+            .sorted(by: >)
+            .map(isIdealDate)
+        let idealDays = ideals.filter { $0 == true } .count
+        var bestPeriod = 0
+        for ideal in ideals {
+            if ideal == false { break }
+            bestPeriod += 1
+        }
+        
         guard let firstRecordDate = records.first?.date
         else { return result }
+        
         let today = Calendar.current.startOfDay(for: Date())
         let difference = Calendar.current.dateComponents([.day], from: firstRecordDate, to: today)
         let differenceDays = difference.day ?? 0
@@ -157,10 +175,8 @@ extension TrackerStore: TrackerStoreProtocol {
         guard totalDays > 0
         else { return result }
         
-        // Лучший период
-        result.append(.init(amount: Statistics.bestPeriod, text: "Лучший период"))
-        // Идеальные дни
-        result.append(.init(amount: Statistics.idealDays, text: "Идеальные дни"))
+        result.append(.init(amount: bestPeriod, text: "Лучший период"))
+        result.append(.init(amount: idealDays, text: "Идеальные дни"))
         result.append(.init(amount: records.count, text: "Трекеров завершено"))
         result.append(.init(amount: records.count / totalDays, text: "Среднее значение"))
         
@@ -217,35 +233,16 @@ extension TrackerStore: TrackerStoreProtocol {
         )
     }
     func toggleCompleted(trackerCoreData: TrackerCoreData, date: Date) throws {
-        var trackerAdded: Bool
         if let record = trackerCoreData.findTrackerRecord(for: date) {
             self.context.delete(record)
-            trackerAdded = false
         } else {
             if date > Date.now { return }
             try TrackerRecordStore(context: self.context).addTrackerRecord(
                 date: date,
                 for: trackerCoreData
             )
-            trackerAdded = true
         }
-        try self.context.save()
-        let uncompletedTrackersCount = uncompletedTrackersCount(for: date)
-        if trackerAdded {
-            if uncompletedTrackersCount == 0 {
-                Statistics.idealDays += 1
-//                Statistics.bestPeriod += 1
-            }
-        } else {
-            if uncompletedTrackersCount == 1 {
-                if Statistics.idealDays > 0 {
-                    Statistics.idealDays -= 1
-                }
-//                if Statistics.bestPeriod > 0 {
-//                    Statistics.bestPeriod -= 1
-//                }
-            }
-        }
+        try context.save()
     }
     func uncompletedTrackersCount(for date: Date) -> Int {
         let fetchRequest = TrackerCoreData.fetchRequest()
@@ -271,11 +268,13 @@ extension TrackerStore: TrackerStoreProtocol {
         trackerCoreData.color = UIColorTransformer.hexString(from: color)
         trackerCoreData.emoji = emoji
         trackerCoreData.name = name
+        trackerCoreData.schedule = ScheduleTransformer.data(from: schedule)
         let categoryStore = TrackerCategoryStore(context: context)
         trackerCoreData.category = categoryStore.categoryCoreData(at: categoryIndexPath)
-        trackerCoreData.schedule = ScheduleTransformer.data(from: schedule)
         try context.save()
+        try fetchedResultsController.performFetch()
     }
+    
     func editTracker(
         at indexPath: IndexPath,
         name: String,
@@ -333,5 +332,14 @@ extension TrackerCoreData {
             }
         }
         return nil
+    }
+    func isCompleted(on date: Date) -> Bool {
+        let records = self.records as? Set<TrackerRecordCoreData> ?? []
+        for record in records {
+            if record.date == Calendar.current.startOfDay(for: date) {
+                return true
+            }
+        }
+        return false
     }
 }
