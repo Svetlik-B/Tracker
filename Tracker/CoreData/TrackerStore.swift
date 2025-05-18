@@ -40,8 +40,8 @@ extension TrackerStoreProtocol {
     ) {
         let startOfDay = Calendar.current.startOfDay(for: date)
         switch filter {
-        case .all:  // только search
-            filterBy([.name(searchString)])
+        case .all:
+            filterBy([.name(searchString), .day(date.weekday.short)])
         case .today:
             let today = Calendar.current.startOfDay(for: Date())
             if Calendar.current.startOfDay(for: date) == today {
@@ -50,9 +50,21 @@ extension TrackerStoreProtocol {
                 filterBy([.name(searchString)])
             }
         case .completed:
-            filterBy([.name(searchString), .completed(startOfDay)])
+            filterBy(
+                [
+                    .name(searchString),
+                    .completed(startOfDay),
+                    .day(date.weekday.short),
+                ]
+            )
         case .uncompleted:
-            filterBy([.name(searchString), .uncompleted(startOfDay)])
+            filterBy(
+                [
+                    .name(searchString),
+                    .uncompleted(startOfDay),
+                    .day(date.weekday.short),
+                ]
+            )
         }
     }
 }
@@ -115,7 +127,7 @@ extension TrackerFilter {
             )
         case .uncompleted(let date):
             NSPredicate(
-                format: "NONE records.date = %@",
+                format: "SUBQUERY(records.date, $r, $r.date == %@).@count == 0",
                 Calendar.current.startOfDay(for: date) as NSDate
             )
         }
