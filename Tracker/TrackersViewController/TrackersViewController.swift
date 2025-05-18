@@ -23,7 +23,8 @@ final class TrackersViewController: UIViewController {
     private var filter = FilterType.all
     private let searchController = UISearchController(searchResultsController: nil)
     private let datePicker = UIDatePicker()
-    private let imageContainerView = UIView()
+    private let noTrackersView = UIView()
+    private let noResultsView = UIView()
     private let filterButton = UIButton(type: .system)
     private let layout = UICollectionViewFlowLayout()
     private lazy var collectionView = UICollectionView(
@@ -301,7 +302,7 @@ extension TrackersViewController {
 
     }
 
-    fileprivate func setupPlaceholderView() {
+    fileprivate func setupNoTrackersView() {
         let logoImageView = UIImageView(image: .collectionPlaceholder)
         logoImageView.contentMode = .scaleAspectFit
 
@@ -310,23 +311,52 @@ extension TrackersViewController {
         questionLabel.textColor = .App.black
         questionLabel.font = UIFont.systemFont(ofSize: 12, weight: .medium)
 
-        imageContainerView.frame = view.bounds
-        imageContainerView.autoresizingMask = [
+        noTrackersView.frame = view.bounds
+        noTrackersView.autoresizingMask = [
             .flexibleHeight,
             .flexibleWidth,
         ]
-        view.addSubview(imageContainerView)
+        view.addSubview(noTrackersView)
 
         let imageStack = UIStackView()
         imageStack.axis = .vertical
         imageStack.spacing = 8
         imageStack.addArrangedSubview(logoImageView)
         imageStack.addArrangedSubview(questionLabel)
-        imageContainerView.addSubview(imageStack)
+        noTrackersView.addSubview(imageStack)
         imageStack.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            imageStack.centerXAnchor.constraint(equalTo: imageContainerView.centerXAnchor),
-            imageStack.centerYAnchor.constraint(equalTo: imageContainerView.centerYAnchor),
+            imageStack.centerXAnchor.constraint(equalTo: noTrackersView.centerXAnchor),
+            imageStack.centerYAnchor.constraint(equalTo: noTrackersView.centerYAnchor),
+        ])
+    }
+
+    fileprivate func setupNoResults() {
+        let logoImageView = UIImageView(image: .nothingFound)
+        logoImageView.contentMode = .scaleAspectFit
+
+        let questionLabel = UILabel()
+        questionLabel.text = "Ничего не найдено"
+        questionLabel.textColor = .App.black
+        questionLabel.font = UIFont.systemFont(ofSize: 12, weight: .medium)
+
+        noResultsView.frame = view.bounds
+        noResultsView.autoresizingMask = [
+            .flexibleHeight,
+            .flexibleWidth,
+        ]
+        view.addSubview(noResultsView)
+
+        let imageStack = UIStackView()
+        imageStack.axis = .vertical
+        imageStack.spacing = 8
+        imageStack.addArrangedSubview(logoImageView)
+        imageStack.addArrangedSubview(questionLabel)
+        noResultsView.addSubview(imageStack)
+        imageStack.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            imageStack.centerXAnchor.constraint(equalTo: noResultsView.centerXAnchor),
+            imageStack.centerYAnchor.constraint(equalTo: noResultsView.centerYAnchor),
         ])
     }
 
@@ -338,7 +368,7 @@ extension TrackersViewController {
         filterButton.layer.cornerRadius = 16
 
         filterButton.translatesAutoresizingMaskIntoConstraints = false
-        collectionView.addSubview(filterButton)
+        view.addSubview(filterButton)
         NSLayoutConstraint.activate(
             [
                 filterButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
@@ -355,8 +385,9 @@ extension TrackersViewController {
     fileprivate func setupUI() {
         setupNavigationBar()
         setupCollectionView()
+        setupNoTrackersView()
+        setupNoResults()
         setupFilterButton()
-        setupPlaceholderView()
     }
     @objc fileprivate func datePickerEvent() {
         trackerStore.updateFilters(
@@ -387,14 +418,13 @@ extension TrackersViewController {
         present(navigationController, animated: true)
     }
     fileprivate func updateView() {
-        if trackerStore.haveTrackers {
-            collectionView.isHidden = false
-            imageContainerView.isHidden = true
-            collectionView.reloadData()
-        } else {
-            collectionView.isHidden = true
-            imageContainerView.isHidden = false
-        }
+        let haveTrackers = trackerStore.haveTrackers
+        let haveResults = trackerStore.haveResults
+        
+        collectionView.isHidden = !haveTrackers || !haveResults
+        noResultsView.isHidden = !haveTrackers || haveResults
+        filterButton.isHidden = !haveTrackers
+        noTrackersView.isHidden = haveTrackers
     }
     fileprivate var selectedWeekday: Tracker.Weekday {
         let weekdayComponent = datePicker.calendar.dateComponents(

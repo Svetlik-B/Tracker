@@ -5,6 +5,7 @@ protocol TrackerStoreProtocol: NSObject {
     var onDidChangeContent: () -> Void { get set }
     var numberOfSections: Int { get }
     var haveTrackers: Bool { get }
+    var haveResults: Bool { get }
     var categoryStore: TrackerCategoryStoreProtocol { get }
     func numberOfItems(in section: Int) -> Int
     func sectionName(for section: Int) -> String?
@@ -133,7 +134,12 @@ private enum Statistics {
 
 extension TrackerStore: TrackerStoreProtocol {
     var numberOfSections: Int { fetchedResultsController.sections?.count ?? 0 }
-    var haveTrackers: Bool { (fetchedResultsController.sections?.count ?? 0) > 0 }
+    var haveTrackers: Bool {
+        let fetchRequest = TrackerCoreData.fetchRequest()
+        let trackersCount = ( try? context.count(for: fetchRequest)) ?? 0
+        return trackersCount > 0
+    }
+    var haveResults: Bool { (fetchedResultsController.sections?.count ?? 0) > 0 }
     var categoryStore: TrackerCategoryStoreProtocol { TrackerCategoryStore(context: context) }
     func getStatistics() -> [StatisticsCellView.ViewModel] {
         var result = [StatisticsCellView.ViewModel]()
