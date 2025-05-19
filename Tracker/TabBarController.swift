@@ -11,7 +11,7 @@ final class TabBarController: UITabBarController {
     }
     private let trackerStore: TrackerStoreProtocol
     private let statisticsItem = UITabBarItem(
-        title: "Статистика",
+        title: NSLocalizedString("Статистика", comment: ""),
         image: .statistics,
         selectedImage: .statistics
     )
@@ -30,7 +30,6 @@ final class TabBarController: UITabBarController {
     }
 
     private func setupTabBar() {
-//        tabBar.backgroundColor = .App.white
         tabBar.layer.borderWidth = 1
     }
 
@@ -38,7 +37,7 @@ final class TabBarController: UITabBarController {
         let tracker = TrackersViewController(trackerStore: trackerStore)
         let trackerViewController = UINavigationController(rootViewController: tracker)
         trackerViewController.tabBarItem = UITabBarItem(
-            title: "Трекеры",
+            title: NSLocalizedString("Трекеры", comment: ""),
             image: .tracker,
             selectedImage: .tracker
         )

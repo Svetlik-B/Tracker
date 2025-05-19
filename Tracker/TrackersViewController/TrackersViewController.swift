@@ -301,7 +301,7 @@ extension TrackersViewController {
     fileprivate func setupNavigationBar() {
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationController?.navigationBar.tintColor = .App.black
-        navigationItem.title = "Трекеры"
+        navigationItem.title = NSLocalizedString("Трекеры", comment: "")
 
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             image: .plus,
@@ -313,7 +313,6 @@ extension TrackersViewController {
         datePicker.tintColor = .App.blue
         datePicker.datePickerMode = .date
         datePicker.preferredDatePickerStyle = .compact
-        datePicker.locale = Locale(identifier: "ru_Ru")
         datePicker.addTarget(
             self,
             action: #selector(datePickerEvent),
@@ -323,7 +322,6 @@ extension TrackersViewController {
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: datePicker)
 
         searchController.obscuresBackgroundDuringPresentation = false
-        searchController.searchBar.placeholder = "Поиск"
         navigationItem.searchController = searchController
         searchController.searchResultsUpdater = self
     }
@@ -414,7 +412,10 @@ extension TrackersViewController {
 
     fileprivate func setupFilterButton() {
         filterButton.addTarget(self, action: #selector(selectFilter), for: .touchUpInside)
-        filterButton.setTitle("Фильтры", for: .normal)
+        filterButton.setTitle(
+            NSLocalizedString("Фильтры", comment: ""),
+            for: .normal
+        )
         filterButton.backgroundColor = .App.blue
         filterButton.tintColor = .white
         filterButton.layer.cornerRadius = 16

@@ -17,7 +17,10 @@ final class TrackerCell: UICollectionViewCell {
         cellLabel.text = model.text
         emojiLabel.text = model.emoji
         action = model.action
-        dayLabel.text = model.count.days
+        dayLabel.text = String.localizedStringWithFormat(
+            NSLocalizedString("дней", comment: ""),
+            model.count
+        )
         button.setImage(
             model.completed
                 ? .done.withTintColor(.App.white)
