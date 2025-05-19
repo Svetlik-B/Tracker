@@ -1,4 +1,5 @@
 import UIKit
+import YandexMobileMetrica
 
 private enum Constant {
     static let minimumInteritemSpacing: CGFloat = 9
@@ -42,6 +43,26 @@ final class TrackersViewController: UIViewController {
             filter: .all
         )
         updateView()
+    }
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        YMMYandexMetrica
+            .reportEvent(
+                "open",
+                parameters: ["screen": "Main"],
+                onFailure: { error in
+            print("REPORT ERROR: %@", error.localizedDescription)
+        })
+    }
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        YMMYandexMetrica
+            .reportEvent(
+                "close",
+                parameters: ["screen": "Main"],
+                onFailure: { error in
+            print("REPORT ERROR: %@", error.localizedDescription)
+        })
     }
 }
 
@@ -104,12 +125,27 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
                             }
                         },
                         UIAction(title: "Редактировать") { [weak self] _ in
+                            YMMYandexMetrica
+                                .reportEvent(
+                                    "click",
+                                    parameters: ["screen": "Main", "item": "edit"],
+                                    onFailure: { error in
+                                print("REPORT ERROR: %@", error.localizedDescription)
+                            })
+
                             self?.editTracker(at: indexPath)
                         },
                         UIAction(
                             title: "Удалить",
                             attributes: .destructive
                         ) { [weak self] _ in
+                            YMMYandexMetrica
+                                .reportEvent(
+                                    "click",
+                                    parameters: ["screen": "Main", "item": "delete"],
+                                    onFailure: { error in
+                                print("REPORT ERROR: %@", error.localizedDescription)
+                            })
                             self?.deleteTrackers(at: indexPath)
                         },
                     ]
@@ -163,6 +199,14 @@ extension TrackersViewController: UICollectionViewDataSource {
                     completed: tracker.isCompleted(datePicker.date),
                     isPinned: tracker.isPinned,
                     action: { [weak self] in
+                        YMMYandexMetrica
+                            .reportEvent(
+                                "click",
+                                parameters: ["screen": "Main", "item": "track"],
+                                onFailure: { error in
+                            print("REPORT ERROR: %@", error.localizedDescription)
+                        })
+
                         guard let self else { return }
                         do {
                             try tracker.toggleCompleted(self.datePicker.date)
@@ -238,6 +282,14 @@ extension TrackersViewController {
         present(actionSheet, animated: true)
     }
     @objc fileprivate func createTracker() {
+        YMMYandexMetrica
+            .reportEvent(
+                "click",
+                parameters: ["screen": "Main", "item": "add_track"],
+                onFailure: { error in
+            print("REPORT ERROR: %@", error.localizedDescription)
+        })
+
         let trackerTypeSelectionViewController = TrackerTypeSelectionViewController(
             trackerStore: trackerStore
         )
@@ -398,6 +450,14 @@ extension TrackersViewController {
         updateView()
     }
     @objc fileprivate func selectFilter() {
+        YMMYandexMetrica
+            .reportEvent(
+                "click",
+                parameters: ["screen": "Main", "item": "filter"],
+                onFailure: { error in
+            print("REPORT ERROR: %@", error.localizedDescription)
+        })
+
         let filterViewController = FilterViewController(
             viewModel: .init(filter: filter) { [weak self] filter in
                 guard let self else { return }
