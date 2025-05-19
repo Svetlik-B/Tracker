@@ -23,7 +23,7 @@ final class EditCategoryViewController: UIViewController {
 // MARK: - Interface
 extension EditCategoryViewController {
     struct ViewModel {
-        var categoryStore: TrackerCategoryStore
+        var categoryStore: TrackerCategoryStoreProtocol
         var indexPath: IndexPath?
         var action: (IndexPath) -> Void
     }
@@ -53,7 +53,7 @@ extension EditCategoryViewController {
             )
             viewModel.action(indexPath)
         } else {
-            if let indexPath = try? viewModel.categoryStore.addCategory(category) {
+            if let indexPath = try? viewModel.categoryStore.findOrCreateCategory(category) {
                 viewModel.action(indexPath)
             }
         }

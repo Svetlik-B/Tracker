@@ -16,7 +16,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window = UIWindow(windowScene: windowScene)
         let seenOnboarding = UserDefaults.standard.bool(forKey: Constant.seenOnboardingKey)
         if seenOnboarding {
-            window?.rootViewController = TabBarController()
+            window?.rootViewController = TabBarController(trackerStore: TrackerStore())
         } else {
             window?.rootViewController = OnboardingViewController(
                 viewModel: [
@@ -38,10 +38,9 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     
     private func showTabBarController() {
         UserDefaults.standard.set(true, forKey: Constant.seenOnboardingKey)
-        let vc = TabBarController()
+        let vc = TabBarController(trackerStore: TrackerStore())
         vc.modalPresentationStyle = .fullScreen
         vc.modalTransitionStyle = .crossDissolve
         window?.rootViewController?.present(vc, animated: true)
-        window?.rootViewController = TabBarController()
     }
 }
