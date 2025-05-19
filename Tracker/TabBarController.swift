@@ -2,7 +2,14 @@ import SwiftUI
 import UIKit
 
 final class TabBarController: UITabBarController {
-    private let trackerStore = TrackerStore()
+    init(trackerStore: TrackerStoreProtocol) {
+        self.trackerStore = trackerStore
+        super.init(nibName: nil, bundle: nil)
+    }
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    private let trackerStore: TrackerStoreProtocol
     private let statisticsItem = UITabBarItem(
         title: "Статистика",
         image: .statistics,
@@ -12,6 +19,7 @@ final class TabBarController: UITabBarController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        setupTabBar()
         setupViewControllers()
     }
 
@@ -22,7 +30,7 @@ final class TabBarController: UITabBarController {
     }
 
     private func setupTabBar() {
-        tabBar.backgroundColor = .App.white
+//        tabBar.backgroundColor = .App.white
         tabBar.layer.borderWidth = 1
     }
 
@@ -49,5 +57,5 @@ final class TabBarController: UITabBarController {
 }
 
 #Preview {
-    TabBarController()
+    TabBarController(trackerStore: TrackerStore())
 }
