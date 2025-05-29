@@ -1,4 +1,5 @@
 import UIKit
+import YandexMobileMetrica
 
 private enum Constant {
     static let minimumInteritemSpacing: CGFloat = 9
@@ -6,13 +7,25 @@ private enum Constant {
 }
 
 final class TrackersViewController: UIViewController {
-    lazy var trackerDataSource = TrackerDataSource { [weak self] in
-        self?.updatedView()
+    var trackerStore: TrackerStoreProtocol
+
+    init(trackerStore: TrackerStoreProtocol) {
+        self.trackerStore = trackerStore
+        super.init(nibName: nil, bundle: nil)
+        trackerStore.onDidChangeContent = { [weak self] in
+            self?.updateView()
+        }
     }
 
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    private var filter = FilterType.all
+    private let searchController = UISearchController(searchResultsController: nil)
     private let datePicker = UIDatePicker()
-    private let searchBar = UISearchBar()
-    private let imageContainerView = UIView()
+    private let noTrackersView = UIView()
+    private let noResultsView = UIView()
     private let filterButton = UIButton(type: .system)
     private let layout = UICollectionViewFlowLayout()
     private lazy var collectionView = UICollectionView(
@@ -24,7 +37,32 @@ final class TrackersViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .App.white
         setupUI()
-        updatedView()
+        trackerStore.updateFilters(
+            date: datePicker.date,
+            searchString: "",
+            filter: .all
+        )
+        updateView()
+    }
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        YMMYandexMetrica
+            .reportEvent(
+                "open",
+                parameters: ["screen": "Main"],
+                onFailure: { error in
+            print("REPORT ERROR: %@", error.localizedDescription)
+        })
+    }
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        YMMYandexMetrica
+            .reportEvent(
+                "close",
+                parameters: ["screen": "Main"],
+                onFailure: { error in
+            print("REPORT ERROR: %@", error.localizedDescription)
+        })
     }
 }
 
@@ -46,22 +84,100 @@ extension TrackersViewController: UICollectionViewDelegateFlowLayout {
         layout collectionViewLayout: UICollectionViewLayout,
         referenceSizeForHeaderInSection section: Int
     ) -> CGSize {
-        guard trackerDataSource.sectionName(for: section) != nil
+        guard trackerStore.sectionName(for: section) != nil
         else { return .zero }
         return .init(width: 0, height: section == 0 ? 54 : 46)
+    }
+    func collectionView(
+        _ collectionView: UICollectionView,
+        contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
+        point: CGPoint
+    ) -> UIContextMenuConfiguration? {
+        guard let indexPath = indexPaths.first
+        else { return nil }
+        let tracker = trackerStore.tracker(at: indexPath)
+        return UIContextMenuConfiguration(
+            previewProvider: {
+                let viewModel = TrackerPreviewController.ViewModel(
+                    size: .init(
+                        width: (collectionView.bounds.width - 2 * Constant.sectionInset
+                            - Constant.minimumInteritemSpacing) / 2,
+                        height: 90
+                    ),
+                    color: tracker.color,
+                    emoji: tracker.emoji,
+                    text: tracker.name
+                )
+                let vc = TrackerPreviewController()
+                vc.viewModel = viewModel
+                return vc
+            },
+            actionProvider: { action in
+                UIMenu(
+                    children: [
+                        UIAction(
+                            title: tracker.isPinned ? "Открепить" : "Закрепить"
+                        ) { [weak self] _ in
+                            if tracker.isPinned {
+                                try? self?.trackerStore.unpinTracker(at: indexPath)
+                            } else {
+                                try? self?.trackerStore.pinTracker(at: indexPath)
+                            }
+                        },
+                        UIAction(title: "Редактировать") { [weak self] _ in
+                            YMMYandexMetrica
+                                .reportEvent(
+                                    "click",
+                                    parameters: ["screen": "Main", "item": "edit"],
+                                    onFailure: { error in
+                                print("REPORT ERROR: %@", error.localizedDescription)
+                            })
+
+                            self?.editTracker(at: indexPath)
+                        },
+                        UIAction(
+                            title: "Удалить",
+                            attributes: .destructive
+                        ) { [weak self] _ in
+                            YMMYandexMetrica
+                                .reportEvent(
+                                    "click",
+                                    parameters: ["screen": "Main", "item": "delete"],
+                                    onFailure: { error in
+                                print("REPORT ERROR: %@", error.localizedDescription)
+                            })
+                            self?.deleteTrackers(at: indexPath)
+                        },
+                    ]
+                )
+            }
+        )
+    }
+    func collectionView(
+        _ collectionView: UICollectionView,
+        layout collectionViewLayout: UICollectionViewLayout,
+        insetForSectionAt section: Int
+    ) -> UIEdgeInsets {
+        let isLastSection = section == trackerStore.numberOfSections - 1
+        return .init(
+            top: 0,
+            left: Constant.sectionInset,
+            bottom: isLastSection ? 60 : 0,
+            right: Constant.sectionInset
+        )
     }
 }
 
 // MARK: - UICollectionViewDataSource
 extension TrackersViewController: UICollectionViewDataSource {
     func numberOfSections(in collectionView: UICollectionView) -> Int {
-        trackerDataSource.numberOfSections
+        trackerStore.numberOfSections
     }
     func collectionView(
         _ collectionView: UICollectionView,
         numberOfItemsInSection section: Int
     ) -> Int {
-        trackerDataSource.numberOfItems(in: section)
+        trackerStore.numberOfItems(in: section)
     }
 
     func collectionView(
@@ -72,7 +188,7 @@ extension TrackersViewController: UICollectionViewDataSource {
             withReuseIdentifier: TrackerCell.reuseIdentifier,
             for: indexPath
         )
-        let tracker = trackerDataSource.tracker(at: indexPath)
+        let tracker = trackerStore.tracker(at: indexPath)
         if let cell = cell as? TrackerCell {
             cell.configure(
                 model: .init(
@@ -81,7 +197,16 @@ extension TrackersViewController: UICollectionViewDataSource {
                     color: tracker.color,
                     count: tracker.count(),
                     completed: tracker.isCompleted(datePicker.date),
+                    isPinned: tracker.isPinned,
                     action: { [weak self] in
+                        YMMYandexMetrica
+                            .reportEvent(
+                                "click",
+                                parameters: ["screen": "Main", "item": "track"],
+                                onFailure: { error in
+                            print("REPORT ERROR: %@", error.localizedDescription)
+                        })
+
                         guard let self else { return }
                         do {
                             try tracker.toggleCompleted(self.datePicker.date)
@@ -108,25 +233,75 @@ extension TrackersViewController: UICollectionViewDataSource {
             for: indexPath
         )
         if let header = header as? TrackerHeader {
-            header.label.text = trackerDataSource.sectionName(for: indexPath.section)
+            let text = trackerStore.sectionName(for: indexPath.section) ?? ""
+            header.label.text = text.isEmpty ? "Закрепленные" : text
         }
         return header
     }
 }
 
+// MARK: - UISearchResultsUpdating
+extension TrackersViewController: UISearchResultsUpdating {
+    func updateSearchResults(for searchController: UISearchController) {
+        let searchString = searchController.searchBar.text ?? ""
+        trackerStore.updateFilters(
+            date: datePicker.date,
+            searchString: searchString,
+            filter: filter
+        )
+        updateView()
+    }
+
+}
+
 // MARK: - Implementation
 extension TrackersViewController {
+    fileprivate func editTracker(at indexPath: IndexPath) {
+        let vc = EditTrackerViewController(
+            trackerStore: trackerStore,
+            indexPath: indexPath
+        )
+        let navigationController = UINavigationController(
+            rootViewController: vc
+        )
+        vc.modalPresentationStyle = .fullScreen
+        self.present(navigationController, animated: true)
+    }
+    fileprivate func deleteTrackers(at indexPath: IndexPath) {
+        let actionSheet = UIAlertController(
+            title: nil,
+            message: "Уверены что хотите удалить трекер?",
+            preferredStyle: .actionSheet
+        )
+        actionSheet.addAction(
+            .init(title: "Удалить", style: .destructive) { [weak self] _ in
+                try? self?.trackerStore.deleteTracker(at: indexPath)
+            }
+        )
+        actionSheet.addAction(.init(title: "Отменить", style: .cancel))
+        present(actionSheet, animated: true)
+    }
     @objc fileprivate func createTracker() {
-        let trackerTypeSelectionViewController = TrackerTypeSelectionViewController()
+        YMMYandexMetrica
+            .reportEvent(
+                "click",
+                parameters: ["screen": "Main", "item": "add_track"],
+                onFailure: { error in
+            print("REPORT ERROR: %@", error.localizedDescription)
+        })
+
+        let trackerTypeSelectionViewController = TrackerTypeSelectionViewController(
+            trackerStore: trackerStore
+        )
         let vc = UINavigationController(rootViewController: trackerTypeSelectionViewController)
         vc.modalPresentationStyle = .pageSheet
         present(vc, animated: true)
     }
 
-    fileprivate func setupUI() {
+    fileprivate func setupNavigationBar() {
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationController?.navigationBar.tintColor = .App.black
-        navigationItem.title = "Трекеры"
+        navigationItem.title = NSLocalizedString("Трекеры", comment: "")
 
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             image: .plus,
@@ -138,7 +313,6 @@ extension TrackersViewController {
         datePicker.tintColor = .App.blue
         datePicker.datePickerMode = .date
         datePicker.preferredDatePickerStyle = .compact
-        datePicker.locale = Locale(identifier: "ru_Ru")
         datePicker.addTarget(
             self,
             action: #selector(datePickerEvent),
@@ -147,32 +321,15 @@ extension TrackersViewController {
 
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: datePicker)
 
-        let mainStack = UIStackView(frame: view.bounds)
-        mainStack.axis = .vertical
-        view.addSubview(mainStack)
+        searchController.obscuresBackgroundDuringPresentation = false
+        navigationItem.searchController = searchController
+        searchController.searchResultsUpdater = self
+    }
 
-        mainStack.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            mainStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            mainStack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            mainStack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            mainStack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-        ])
-
-        searchBar.placeholder = "Поиск"
-        searchBar.searchBarStyle = .minimal
-        searchBar.tintColor = .App.blue
-        mainStack.addArrangedSubview(searchBar)
-
+    fileprivate func setupCollectionView() {
         layout.scrollDirection = .vertical
         layout.minimumLineSpacing = 0
         layout.minimumInteritemSpacing = Constant.minimumInteritemSpacing
-        layout.sectionInset = .init(
-            top: 0,
-            left: Constant.sectionInset,
-            bottom: 0,
-            right: Constant.sectionInset
-        )
 
         collectionView.backgroundColor = .App.white
         collectionView.dataSource = self
@@ -186,8 +343,16 @@ extension TrackersViewController {
             forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
             withReuseIdentifier: TrackerHeader.reuseIdentifier
         )
-        mainStack.addArrangedSubview(collectionView)
+        collectionView.frame = view.bounds
+        collectionView.autoresizingMask = [
+            .flexibleHeight,
+            .flexibleWidth,
+        ]
+        view.addSubview(collectionView)
 
+    }
+
+    fileprivate func setupNoTrackersView() {
         let logoImageView = UIImageView(image: .collectionPlaceholder)
         logoImageView.contentMode = .scaleAspectFit
 
@@ -196,21 +361,61 @@ extension TrackersViewController {
         questionLabel.textColor = .App.black
         questionLabel.font = UIFont.systemFont(ofSize: 12, weight: .medium)
 
-        mainStack.addArrangedSubview(imageContainerView)
+        noTrackersView.frame = view.bounds
+        noTrackersView.autoresizingMask = [
+            .flexibleHeight,
+            .flexibleWidth,
+        ]
+        view.addSubview(noTrackersView)
 
         let imageStack = UIStackView()
         imageStack.axis = .vertical
         imageStack.spacing = 8
         imageStack.addArrangedSubview(logoImageView)
         imageStack.addArrangedSubview(questionLabel)
-        imageContainerView.addSubview(imageStack)
+        noTrackersView.addSubview(imageStack)
         imageStack.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            imageStack.centerXAnchor.constraint(equalTo: imageContainerView.centerXAnchor),
-            imageStack.centerYAnchor.constraint(equalTo: imageContainerView.centerYAnchor),
+            imageStack.centerXAnchor.constraint(equalTo: noTrackersView.centerXAnchor),
+            imageStack.centerYAnchor.constraint(equalTo: noTrackersView.centerYAnchor),
         ])
+    }
 
-        filterButton.setTitle("Фильтры", for: .normal)
+    fileprivate func setupNoResults() {
+        let logoImageView = UIImageView(image: .nothingFound)
+        logoImageView.contentMode = .scaleAspectFit
+
+        let questionLabel = UILabel()
+        questionLabel.text = "Ничего не найдено"
+        questionLabel.textColor = .App.black
+        questionLabel.font = UIFont.systemFont(ofSize: 12, weight: .medium)
+
+        noResultsView.frame = view.bounds
+        noResultsView.autoresizingMask = [
+            .flexibleHeight,
+            .flexibleWidth,
+        ]
+        view.addSubview(noResultsView)
+
+        let imageStack = UIStackView()
+        imageStack.axis = .vertical
+        imageStack.spacing = 8
+        imageStack.addArrangedSubview(logoImageView)
+        imageStack.addArrangedSubview(questionLabel)
+        noResultsView.addSubview(imageStack)
+        imageStack.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            imageStack.centerXAnchor.constraint(equalTo: noResultsView.centerXAnchor),
+            imageStack.centerYAnchor.constraint(equalTo: noResultsView.centerYAnchor),
+        ])
+    }
+
+    fileprivate func setupFilterButton() {
+        filterButton.addTarget(self, action: #selector(selectFilter), for: .touchUpInside)
+        filterButton.setTitle(
+            NSLocalizedString("Фильтры", comment: ""),
+            for: .normal
+        )
         filterButton.backgroundColor = .App.blue
         filterButton.tintColor = .white
         filterButton.layer.cornerRadius = 16
@@ -228,17 +433,63 @@ extension TrackersViewController {
                 filterButton.heightAnchor.constraint(equalToConstant: 50),
             ]
         )
+    }
 
+    fileprivate func setupUI() {
+        setupNavigationBar()
+        setupCollectionView()
+        setupNoTrackersView()
+        setupNoResults()
+        setupFilterButton()
     }
     @objc fileprivate func datePickerEvent() {
-        updatedView()
+        trackerStore.updateFilters(
+            date: datePicker.date,
+            searchString: searchController.searchBar.text ?? "",
+            filter: filter
+        )
+        updateView()
     }
-    fileprivate func updatedView() {
-        let haveTrackers = trackerDataSource.haveTrackers
-        collectionView.isHidden = !haveTrackers
+    @objc fileprivate func selectFilter() {
+        YMMYandexMetrica
+            .reportEvent(
+                "click",
+                parameters: ["screen": "Main", "item": "filter"],
+                onFailure: { error in
+            print("REPORT ERROR: %@", error.localizedDescription)
+        })
+
+        let filterViewController = FilterViewController(
+            viewModel: .init(filter: filter) { [weak self] filter in
+                guard let self else { return }
+                self.filter = filter
+                if filter == .today {
+                    self.datePicker.date = Date()
+                }
+                self.trackerStore.updateFilters(
+                    date: self.datePicker.date,
+                    searchString: self.searchController.searchBar.text ?? "",
+                    filter: filter
+                )
+                updateView()
+            }
+        )
+        let navigationController = UINavigationController(rootViewController: filterViewController)
+        navigationController.modalPresentationStyle = .pageSheet
+        present(navigationController, animated: true)
+    }
+    fileprivate func updateView() {
+        let haveTrackers = trackerStore.haveTrackers
+        let haveResults = trackerStore.haveResults
+        
+        if haveTrackers {
+            collectionView.reloadData()
+        }
+        
+        collectionView.isHidden = !haveResults
+        noResultsView.isHidden = !(haveTrackers && !haveResults)
         filterButton.isHidden = !haveTrackers
-        imageContainerView.isHidden = haveTrackers
-        collectionView.reloadData()
+        noTrackersView.isHidden = haveTrackers
     }
     fileprivate var selectedWeekday: Tracker.Weekday {
         let weekdayComponent = datePicker.calendar.dateComponents(
@@ -258,5 +509,9 @@ extension TrackersViewController {
 }
 
 #Preview {
-    UINavigationController(rootViewController: TrackersViewController())
+    UINavigationController(
+        rootViewController: TrackersViewController(
+            trackerStore: TrackerStore()
+        )
+    )
 }

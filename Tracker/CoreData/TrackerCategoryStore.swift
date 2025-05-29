@@ -1,13 +1,22 @@
 import CoreData
 
-protocol TrackerCategoryStoreDelegate: AnyObject {
-    func trackerCategoryStoreDidChange(_ store: TrackerCategoryStore)
+protocol TrackerCategoryStoreProtocol: AnyObject {
+    var delegate: TrackerCategoryStoreDelegate? { get set }
+    var numberOfCategories: Int { get }
+    func category(at indexPath: IndexPath) -> TrackerCategory
+    func updateCategory(_ category: TrackerCategory, at indexPath: IndexPath) throws
+    func findOrCreateCategory(_ category: TrackerCategory) throws -> IndexPath
+    func deleteCategory(at indexPath: IndexPath) throws
 }
 
-final class TrackerCategoryStore: NSObject {
+protocol TrackerCategoryStoreDelegate: AnyObject {
+    func trackerCategoryStoreDidChange(_ store: TrackerCategoryStoreProtocol)
+}
+
+final class TrackerCategoryStore: NSObject, TrackerCategoryStoreProtocol {
     weak var delegate: TrackerCategoryStoreDelegate?
     private let context: NSManagedObjectContext
-    private let fetchController: NSFetchedResultsController<TrackerCategoryCoreData>
+    let fetchController: NSFetchedResultsController<TrackerCategoryCoreData>
     override convenience init() {
         self.init(context: Store.persistentContainer.viewContext)
     }
@@ -17,7 +26,7 @@ final class TrackerCategoryStore: NSObject {
 
         let fetchRequest = TrackerCategoryCoreData.fetchRequest()
         fetchRequest.sortDescriptors = [
-            NSSortDescriptor(key: "name", ascending: true),
+            NSSortDescriptor(key: "name", ascending: true)
         ]
         fetchController = NSFetchedResultsController<TrackerCategoryCoreData>(
             fetchRequest: fetchRequest,
@@ -58,7 +67,7 @@ extension TrackerCategoryStore {
         let categoryToDelete = fetchController.object(at: indexPath)
         context.delete(categoryToDelete)
         try context.save()
-        
+
     }
     func updateCategory(
         _ category: TrackerCategory,
@@ -68,10 +77,46 @@ extension TrackerCategoryStore {
         coreDataCategory.name = category.name
         try context.save()
     }
-    func addCategory(_ category: TrackerCategory) throws -> IndexPath? {
+    func findOrCreateCategory(name: String) throws -> TrackerCategoryCoreData {
+        guard let category = findCategory(name: name)
+        else {
+            return try createCategory(name: name)
+        }
+        return category
+    }
+    func findOrCreateCategory(_ category: TrackerCategory) throws -> IndexPath {
+        let categoryCoreData = try findOrCreateCategory(name: category.name)
+        guard let indexPath = fetchController.indexPath(forObject: categoryCoreData)
+        else {
+            struct ImpossibleError: Error {}
+            throw ImpossibleError()
+        }
+        return indexPath
+    }
+    func findCategory(name: String) -> TrackerCategoryCoreData? {
+        let request = TrackerCategoryCoreData.fetchRequest()
+        request.predicate = NSPredicate(format: "name == %@", name)
+        return try? context.fetch(request).first
+    }
+    func findCategory(_ category: TrackerCategory) -> IndexPath? {
+        guard let categoryCoreData = findCategory(name: category.name)
+        else { return nil }
+        return fetchController.indexPath(forObject: categoryCoreData)
+    }
+    func createCategory(name: String) throws -> TrackerCategoryCoreData {
         let coreDataCategory = TrackerCategoryCoreData(context: context)
-        coreDataCategory.name = category.name
+        coreDataCategory.name = name
         try context.save()
-        return fetchController.indexPath(forObject: coreDataCategory)
+        return coreDataCategory
+    }
+    func createCategory(_ category: TrackerCategory) throws -> IndexPath {
+        let coreDataCategory = try createCategory(name: category.name)
+        guard let indexPath = fetchController.indexPath(forObject: coreDataCategory)
+        else {
+            struct ImpossibleError: Error {}
+            throw ImpossibleError()
+        }
+        return indexPath
     }
 }
+

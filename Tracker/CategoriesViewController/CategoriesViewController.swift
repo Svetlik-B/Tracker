@@ -25,13 +25,14 @@ final class CategoriesViewController: UIViewController {
 // MARK: - Interface
 extension CategoriesViewController {
     struct ViewModel {
-        var categoryStore: TrackerCategoryStore
+        var categoryStore: TrackerCategoryStoreProtocol
+        var currentCategoryIndexPath: IndexPath?
         var action: (IndexPath) -> Void
     }
 }
 
 extension CategoriesViewController: TrackerCategoryStoreDelegate {
-    func trackerCategoryStoreDidChange(_ store: TrackerCategoryStore) {
+    func trackerCategoryStoreDidChange(_ store: TrackerCategoryStoreProtocol) {
         updateUI()
     }
 }
@@ -55,13 +56,17 @@ extension CategoriesViewController: UITableViewDataSource {
         )
         let category = viewModel.categoryStore.category(at: indexPath)
         cell.selectionStyle = .none
-        cell.textLabel?.text = category.name
+        cell.textLabel?.text =
+            category.name == ""
+            ? "Закрепленные"
+            : category.name
         cell.textLabel?.textColor = .App.black
         cell.backgroundColor = .App.background
         cell.separatorInset = .init(top: 0, left: 16, bottom: 0, right: 16)
-        cell.accessoryType = tableView.indexPathForSelectedRow == indexPath
-        ? .checkmark
-        : .none
+        cell.accessoryType =
+            tableView.indexPathForSelectedRow == indexPath
+            ? .checkmark
+            : .none
         return cell
     }
 }
@@ -88,20 +93,19 @@ extension CategoriesViewController: UITableViewDelegate {
         contextMenuConfigurationForRowAt indexPath: IndexPath,
         point: CGPoint
     ) -> UIContextMenuConfiguration? {
-        .init(
-            actionProvider: { action in
-                UIMenu(
-                    children: [
-                        UIAction(title: "Редактировать") { [weak self] _ in
-                            self?.presentEditCategoriesViewController(at: indexPath)
-                        },
-                        UIAction(title: "Удалить") { [weak self] _ in
-                            self?.deleteCategory(at: indexPath)
-                        },
-                    ]
-                )
+        var menuElements: [UIMenuElement] = [
+            UIAction(title: "Редактировать") { [weak self] _ in
+                self?.presentEditCategoriesViewController(at: indexPath)
             }
-        )
+        ]
+        if indexPath != viewModel.currentCategoryIndexPath {
+            menuElements.append(
+                UIAction(title: "Удалить", attributes: .destructive) { [weak self] _ in
+                    self?.deleteCategory(at: indexPath)
+                }
+            )
+        }
+        return .init(actionProvider: { _ in UIMenu(children: menuElements) })
     }
 }
 
@@ -113,6 +117,7 @@ extension CategoriesViewController {
                 categoryStore: viewModel.categoryStore,
                 indexPath: indexPath
             ) { [weak self] indexPath in
+                self?.tableView.reloadData()
                 self?.tableView.selectRow(
                     at: indexPath,
                     animated: true,
@@ -209,7 +214,6 @@ extension CategoriesViewController {
     }
 
     fileprivate func updateUI() {
-        print(#function)
         let numberOfCategories = viewModel.categoryStore.numberOfCategories
         placeholder.isHidden = numberOfCategories != 0
         tableView.isHidden = numberOfCategories == 0

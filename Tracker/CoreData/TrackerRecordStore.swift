@@ -3,7 +3,7 @@ import UIKit
 
 final class TrackerRecordStore {
     private let context: NSManagedObjectContext
-    
+
     convenience init() {
         self.init(context: Store.persistentContainer.viewContext)
     }
@@ -14,13 +14,10 @@ final class TrackerRecordStore {
 }
 
 extension TrackerRecordStore {
-    func addTrackerRecord(
-        _ trackerRecord: TrackerRecord,
-        for tracker: TrackerCoreData
-    ) throws {
+    func addTrackerRecord(date: Date, for tracker: TrackerCoreData) throws {
         let trackerRecordCoreData = TrackerRecordCoreData(context: context)
-        trackerRecordCoreData.date = trackerRecord.date
+        trackerRecordCoreData.date = Calendar.current.startOfDay(for: date)
         trackerRecordCoreData.tracker = tracker
         try context.save()
-    }    
+    }
 }

@@ -9,6 +9,9 @@ struct Tracker {
     var count: () -> Int
     var isCompleted: (Date) -> Bool
     var toggleCompleted: (Date) throws -> Void
+    var categoryStore: TrackerCategoryStoreProtocol
+    var categoryIndexPath: IndexPath
+    var isPinned: Bool
 }
 
 extension Tracker {

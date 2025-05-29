@@ -1,6 +1,15 @@
 import UIKit
 
 final class TrackerTypeSelectionViewController: UIViewController {
+    let trackerStore: TrackerStoreProtocol
+    init(trackerStore: TrackerStoreProtocol) {
+        self.trackerStore = trackerStore
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -28,7 +37,7 @@ extension TrackerTypeSelectionViewController {
     }
 
     fileprivate func createTracker(needsSchedule: Bool) {
-        let editTrackerViewController = EditTrackerViewController()
+        let editTrackerViewController = EditTrackerViewController(trackerStore: trackerStore)
         editTrackerViewController.needsSchedule = needsSchedule
         editTrackerViewController.onCreatedTracker = { [weak self] in
             self?.dismiss(animated: true)
@@ -77,5 +86,5 @@ extension TrackerTypeSelectionViewController {
 }
 
 #Preview {
-    UINavigationController(rootViewController: TrackerTypeSelectionViewController())
+    UINavigationController(rootViewController: TrackerTypeSelectionViewController(trackerStore: TrackerStore()))
 }
